@@ -1,0 +1,127 @@
+---
+title: "Neuramine Credits: Pricing, Packages & Auto-Recharge"
+sidebarTitle: "Credits"
+description: "Learn how Neuramine's two-charge credit model works, what cloud GPU inference costs, how to buy credits with bonus top-ups, and how to prevent unexpected overages."
+---
+
+Neuramine uses a prepaid credit balance to cover the cost of AI inference. Every time you send a message to a cloud GPU workspace, two charges are atomically deducted from your balance: a flat API fee and a GPU time fee. Credits never expire, and you can top up at any time from **Settings → Billing** or via the API.
+
+## How charges work
+
+Each inference request triggers exactly two deductions, applied atomically — either both succeed or neither does.
+
+<CardGroup cols={2}>
+  <Card title="Flat API fee" icon="receipt" href="#how-charges-work">
+    **$0.002 per request**
+
+    Applies to every request on paid plans (Starter, Max, Enterprise), regardless of which GPU source the workspace uses — cloud GPU, BYOG, or CPU.
+  </Card>
+  <Card title="GPU time fee" icon="microchip" href="#how-charges-work">
+    **elapsed\_seconds × provider\_rate × 1.30**
+
+    Applies only to **cloud GPU** workspaces. Calculated from the moment inference starts to when the final token is returned, then multiplied by the provider's base rate plus a 30 % platform markup.
+  </Card>
+</CardGroup>
+
+<Note>
+  BYOG (Bring Your Own GPU) and CPU workspaces are **not** charged the GPU time fee. You only pay the $0.002 flat API fee per request. Your own hardware's running costs are yours to manage.
+</Note>
+
+### Cloud GPU rates
+
+The GPU time fee is calculated per second of actual inference time, not by the hour. Neuramine routes workloads across cloud GPU infrastructure; the effective rate after the 30 % platform markup ranges from approximately **$1.04 / hr** to **$1.95 / hr** depending on the GPU tier assigned to your workspace. A 3-second response on a standard cloud GPU workspace costs roughly **$0.0012** in GPU time, plus the $0.002 flat fee — about $0.0032 total.
+
+## Credit packages
+
+Purchase credits in preset packages from **Settings → Billing → Add Credits**. Larger packages include a bonus percentage applied instantly at purchase.
+
+| You pay | Credits you receive | Bonus |
+|---|---|---|
+| $25 | $25.00 | — |
+| $50 | $50.00 | — |
+| $100 | $100.00 | — |
+| $250 | $262.50 | +5 % |
+| $500 | $540.00 | +8 % |
+
+<Tip>
+  If you run regular workloads, buying the $250 or $500 package gives you more inference time per dollar. The 8 % bonus on a $500 purchase equals $40 of additional credits.
+</Tip>
+
+## Trial credits
+
+When you first activate a Starter or Max plan, Neuramine adds **$10 in trial credits** to your account automatically — no purchase required. These credits behave identically to purchased credits and cover both the flat API fee and GPU time charges.
+
+Trial credits are granted **once per account lifetime**. They carry over if you switch plans (e.g. Starter → Max), but are forfeited if you cancel your subscription.
+
+## Auto-recharge
+
+Auto-recharge prevents your workspaces from going offline due to a depleted balance. When your credit balance falls below the threshold you set, Neuramine automatically purchases a credit package on your behalf using your saved payment method.
+
+Configure auto-recharge from **Settings → Billing → Auto-Recharge**:
+
+1. Enable the toggle.
+2. Set a **recharge threshold** — the balance level that triggers a top-up (e.g. $5.00).
+3. Choose the **package to purchase** when the threshold is hit.
+
+## Monthly spend cap
+
+Set a monthly spend cap to put a hard ceiling on credit consumption for the calendar month. Once your spend reaches the cap, inference requests are paused until the next month begins or you raise the cap.
+
+- Minimum cap: **$5.00**
+- Maximum cap: **$10,000**
+- Set to **$0** to remove the cap entirely.
+
+Configure your cap from **Settings → Billing → Spend Cap** or via the API.
+
+<Warning>
+  The spend cap counts credits consumed by inference only. Manual credit purchases and auto-recharge purchases do not count toward the cap, and credits purchased above the cap remain in your balance for future months.
+</Warning>
+
+## Checking your balance
+
+### In the dashboard
+
+Navigate to **Settings → Billing**. Your current credit balance, active tier, auto-recharge status, and monthly spend cap are displayed at the top of the page.
+
+### Via the API
+
+Use the `GET /v1/billing/balance` endpoint to retrieve your balance programmatically. This is useful for building spend-monitoring scripts or internal dashboards.
+
+<CodeGroup>
+```bash cURL
+curl https://api.neuramine.ai/v1/billing/balance \
+  -H 'Authorization: Bearer nrm_sk_...'
+```
+
+```python Python
+import requests
+
+resp = requests.get(
+    "https://api.neuramine.ai/v1/billing/balance",
+    headers={"Authorization": "Bearer nrm_sk_..."},
+)
+print(resp.json())
+```
+</CodeGroup>
+
+**Example response:**
+
+```json
+{
+  "credit_balance_usd": 47.38,
+  "tier": "starter",
+  "pending_tier": null,
+  "api_request_fee_usd": 0.002,
+  "auto_recharge": true,
+  "monthly_spend_cap_usd": 50.0,
+  "packages": [
+    { "usd": 25,  "bonus_pct": 0, "credit_usd": 25.0 },
+    { "usd": 50,  "bonus_pct": 0, "credit_usd": 50.0 },
+    { "usd": 100, "bonus_pct": 0, "credit_usd": 100.0 },
+    { "usd": 250, "bonus_pct": 5, "credit_usd": 262.5 },
+    { "usd": 500, "bonus_pct": 8, "credit_usd": 540.0 }
+  ]
+}
+```
+
+The `pending_tier` field shows any scheduled plan change (e.g. a downgrade that takes effect at the end of the current billing period).

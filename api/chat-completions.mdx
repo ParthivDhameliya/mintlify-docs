@@ -1,0 +1,257 @@
+---
+title: "Chat Completions — OpenAI-Compatible LLM Inference"
+sidebarTitle: "Chat Completions"
+description: "Send messages to your private model and receive streamed or complete responses. Drop-in compatible with the OpenAI SDK — change base URL and key only."
+---
+
+The chat completions endpoint is Neuramine's core inference surface. It accepts the same request shape as OpenAI's `POST /v1/chat/completions`, so you can migrate existing integrations by changing only your `base_url` and `api_key`. Every request automatically injects your workspace's long-term memories and RAG knowledge base into the system prompt — no extra configuration needed.
+
+<Info>
+  **BYOG workspaces route differently.** If your workspace uses Bring Your Own GPU (`gpu_source: "byog"`) or CPU-only inference, the frontend chat UI tunnels directly to your local agent. Do not call this endpoint for BYOG workspaces — use the chat UI or the agent's local tunnel instead.
+</Info>
+
+## Endpoint
+
+```
+POST https://api.neuramine.ai/v1/chat/completions
+```
+
+## Authentication
+
+Include your workspace API key as a Bearer token in every request.
+
+```
+Authorization: Bearer nrm_sk_<workspace_id>_<32_chars>
+```
+
+## Request parameters
+
+<ParamField body="model" type="string" required>
+  The model ID to use for inference (e.g. `"llama-3.1-8b"`). Must match the model configured for your workspace. Use [GET /v1/models](/api/models) to list available models.
+</ParamField>
+
+<ParamField body="messages" type="array" required>
+  An array of message objects forming the conversation. Each object must have:
+  - `role` — `"user"` or `"assistant"`. Any `"system"` role messages you include are stripped server-side (see [System prompt layers](#system-prompt-layers) below).
+  - `content` — the text content of the message.
+</ParamField>
+
+<ParamField body="stream" type="boolean" default="false">
+  When `true`, the response is delivered as a Server-Sent Events stream. Each chunk contains a partial delta. The stream ends with `data: [DONE]`. Recommended for chat UIs and interactive applications.
+</ParamField>
+
+<ParamField body="temperature" type="float">
+  Sampling temperature between `0.0` (deterministic) and `2.0` (highly random). Defaults to the model's built-in default when omitted.
+</ParamField>
+
+<ParamField body="max_tokens" type="integer">
+  Maximum number of tokens to generate. Capped by your plan tier regardless of what you set here:
+
+  | Plan | Max output tokens |
+  |---|---|
+  | Free Forever | 512 |
+  | Starter | 4096 |
+  | Max | 4096 (configurable by Admin) |
+</ParamField>
+
+<ParamField body="conversation_id" type="string">
+  Optional UUID. When provided, Neuramine persists the turn under this conversation so the chat history appears in the UI. Omit if you are building a stateless API integration.
+</ParamField>
+
+## Input token limits
+
+Neuramine enforces per-tier input limits. Requests that exceed the limit receive a `400` error.
+
+| Plan | Max input tokens |
+|---|---|
+| Free Forever | 2,048 |
+| Starter | 32,768 |
+| Max | 128,000 |
+
+<Warning>
+  Input token limits apply to the combined length of all messages in the `messages` array plus your workspace system prompt. A rough estimate of 4 characters per token is used server-side.
+</Warning>
+
+## System prompt layers
+
+Neuramine assembles a three-layer system prompt on every request. **You cannot override Layers 1 or 2** — any `"system"` role message you include in `messages` is removed before inference.
+
+| Layer | Owner | Purpose |
+|---|---|---|
+| Layer 1 — Platform | Neuramine (hardcoded) | Legal protection, prevents infrastructure disclosure |
+| Layer 2 — Vertical | Neuramine (per-vertical) | Compliance guardrails for healthcare / finance / legal |
+| Layer 3 — Workspace | You (Admin-configurable) | Assistant name, tone, custom workflows |
+
+<Note>
+  Long-term memories and relevant RAG chunks from your knowledge base are automatically appended to the assembled system prompt on every request. You do not need to manage context injection manually.
+</Note>
+
+## Non-streaming response
+
+<Tabs>
+  <Tab title="Response fields">
+    <ResponseField name="choices" type="array">
+      Array of completion choices. Typically contains one element.
+
+      <Expandable title="choice object">
+        <ResponseField name="choices[].message" type="object">
+          The assistant's reply.
+
+          <Expandable title="message object">
+            <ResponseField name="choices[].message.role" type="string">
+              Always `"assistant"`.
+            </ResponseField>
+            <ResponseField name="choices[].message.content" type="string">
+              The full generated text.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+
+        <ResponseField name="choices[].finish_reason" type="string">
+          Reason generation stopped. One of `"stop"`, `"length"`, or `"content_filter"`.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Tab>
+  <Tab title="Example response">
+    ```json
+    {
+      "choices": [
+        {
+          "message": {
+            "role": "assistant",
+            "content": "The capital of France is Paris."
+          },
+          "finish_reason": "stop"
+        }
+      ]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Streaming response (SSE)
+
+When `stream: true`, Neuramine returns a `text/event-stream` response. Each line has the form `data: <JSON>`. The stream ends with `data: [DONE]`.
+
+```
+data: {"choices":[{"delta":{"content":"The"},"finish_reason":null}]}
+
+data: {"choices":[{"delta":{"content":" capital"},"finish_reason":null}]}
+
+data: {"choices":[{"delta":{"content":" of France is Paris."},"finish_reason":"stop"}]}
+
+data: [DONE]
+```
+
+<Note>
+  Tool-use events (web search, web fetch) are flushed to the stream before inference tokens begin. They appear as `data: [TOOL:search:query]` or `data: [TOOL:fetch:url]` lines and should be handled or ignored by your client.
+</Note>
+
+## Code examples
+
+<CodeGroup>
+
+```bash cURL (non-streaming)
+curl https://api.neuramine.ai/v1/chat/completions \
+  -H "Authorization: Bearer nrm_sk_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "llama-3.1-8b",
+    "messages": [
+      {"role": "user", "content": "What is the capital of France?"}
+    ]
+  }'
+```
+
+```bash cURL (streaming)
+curl https://api.neuramine.ai/v1/chat/completions \
+  -H "Authorization: Bearer nrm_sk_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  --no-buffer \
+  -d '{
+    "model": "llama-3.1-8b",
+    "messages": [
+      {"role": "user", "content": "Explain quantum entanglement simply."}
+    ],
+    "stream": true
+  }'
+```
+
+```python Python (OpenAI SDK)
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.neuramine.ai/v1/",
+    api_key="nrm_sk_YOUR_KEY",
+)
+
+# Non-streaming
+response = client.chat.completions.create(
+    model="llama-3.1-8b",
+    messages=[
+        {"role": "user", "content": "What is the capital of France?"}
+    ],
+)
+print(response.choices[0].message.content)
+
+# Streaming
+stream = client.chat.completions.create(
+    model="llama-3.1-8b",
+    messages=[
+        {"role": "user", "content": "Explain quantum entanglement simply."}
+    ],
+    stream=True,
+)
+for chunk in stream:
+    delta = chunk.choices[0].delta.content
+    if delta:
+        print(delta, end="", flush=True)
+```
+
+```typescript Node.js (OpenAI SDK)
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://api.neuramine.ai/v1/",
+  apiKey: "nrm_sk_YOUR_KEY",
+});
+
+// Non-streaming
+const response = await client.chat.completions.create({
+  model: "llama-3.1-8b",
+  messages: [
+    { role: "user", content: "What is the capital of France?" },
+  ],
+});
+console.log(response.choices[0].message.content);
+
+// Streaming
+const stream = await client.chat.completions.create({
+  model: "llama-3.1-8b",
+  messages: [
+    { role: "user", content: "Explain quantum entanglement simply." },
+  ],
+  stream: true,
+});
+for await (const chunk of stream) {
+  const delta = chunk.choices[0]?.delta?.content;
+  if (delta) process.stdout.write(delta);
+}
+```
+
+</CodeGroup>
+
+## Rate limits and errors
+
+| HTTP status | Meaning |
+|---|---|
+| `400` | Input exceeds token limit for your plan, or invalid request body |
+| `401` | Missing or invalid API key |
+| `403` | Workspace suspended |
+| `429` | Rate limit exceeded (default: 60 requests/minute per workspace) |
+| `500` | Inference endpoint temporarily unavailable |
+
+<Tip>
+  If you receive a `429`, wait one minute and retry. Workspace admins can raise the rate limit per workspace from the Neuramine dashboard.
+</Tip>

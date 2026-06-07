@@ -1,0 +1,98 @@
+---
+title: "Neuramine Enterprise: Compliance, SSO & Dedicated GPU"
+sidebarTitle: "Enterprise"
+description: "Everything teams in healthcare, finance, and legal need: dedicated GPU, SSO/SAML, HIPAA BAA, PIPEDA compliance, AES-256 encryption, and a custom SLA."
+---
+
+Neuramine Enterprise is built for organisations that cannot compromise on data privacy, uptime, or access control. Whether your team operates under HIPAA, PIPEDA, or internal security mandates, Enterprise gives you the dedicated infrastructure, compliance documentation, and governance tools to deploy private AI with confidence.
+
+## Who Enterprise is for
+
+<CardGroup cols={2}>
+  <Card title="Healthcare" icon="heart-pulse" href="#compliance-certifications">
+    Run AI on patient workflows, clinical documentation, and medical records without sending data to third-party model APIs. Neuramine signs a HIPAA Business Associate Agreement (BAA) and retains audit logs for the required six years.
+  </Card>
+  <Card title="Finance" icon="chart-line" href="#security-and-compliance">
+    Keep financial models, client data, and proprietary strategies on dedicated infrastructure. Per-workspace encryption and append-only audit logs satisfy internal audit requirements.
+  </Card>
+  <Card title="Legal" icon="scale-balanced" href="#security-and-compliance">
+    Protect privilege and confidentiality with data isolation enforced at the infrastructure level — not just at the application layer. Every workspace gets its own encryption key managed by Neuramine's key management infrastructure.
+  </Card>
+  <Card title="Enterprise teams" icon="users" href="#access-management">
+    Manage access centrally with SSO/SAML, provision unlimited workspaces for every team member, and enforce role-based access without IT overhead.
+  </Card>
+</CardGroup>
+
+## What's included
+
+### Infrastructure and performance
+
+- **Dedicated GPU instances** — your workloads run on reserved hardware, never on shared serverless pools. No cold-start latency, no noisy-neighbour contention.
+- **Unlimited workspaces** — create as many isolated environments as your teams need, each with its own model, knowledge base, system prompt, and API key.
+- **Unlimited BYOG devices** — connect any number of your own GPU machines alongside or instead of cloud GPU.
+- **Custom context window** — work with Neuramine to configure the token limit that fits your use case, beyond the 128 k Max default.
+- **Unlimited RAG chunks and memories** — no per-request retrieval caps; index and retrieve as much of your knowledge base as each request requires.
+- **Custom model hosting** — bring proprietary or fine-tuned models; Neuramine handles deployment, scaling, and versioning.
+
+### Security and compliance
+
+<CardGroup cols={2}>
+  <Card title="AES-256 encryption" icon="lock" href="#security-and-compliance">
+    Every workspace gets its own AES-256 encryption key managed by Neuramine's cloud key management infrastructure. Data at rest — conversation history, knowledge-base vectors, uploaded models — is encrypted per workspace, not per account.
+  </Card>
+  <Card title="6-year audit log retention" icon="clock-rotate-left" href="#security-and-compliance">
+    Every request and response is written to an append-only, encrypted audit log synchronously — before the response is returned to the user. Logs are retained for six years to meet HIPAA requirements.
+  </Card>
+  <Card title="TLS 1.3" icon="shield-halved" href="#security-and-compliance">
+    All connections to the Neuramine API and dashboard are protected by TLS 1.3. Older protocol versions are not negotiated.
+  </Card>
+  <Card title="Data isolation" icon="database" href="#security-and-compliance">
+    Workspaces are isolated at every layer: separate schemas, separate vector collections, and separate encryption keys. No cross-workspace data leakage is possible at the infrastructure level.
+  </Card>
+</CardGroup>
+
+### Access management
+
+- **SSO / SAML** — integrate with your existing identity provider (Okta, Azure AD, Google Workspace, and any SAML 2.0-compatible IdP). Users authenticate through your existing SSO flow; no separate Neuramine passwords required.
+- **Team management** — invite members, assign roles, and manage workspace access from a central admin panel.
+- **Per-workspace API keys** — each workspace issues its own `nrm_sk_` key, so you can rotate or revoke access to individual environments without affecting others.
+
+### Compliance certifications
+
+| Standard | Coverage |
+|---|---|
+| **HIPAA** | BAA signed for healthcare accounts; 6-year audit log retention; AES-256 encryption per workspace; TLS 1.3 on all connections |
+| **PIPEDA** | Canadian federal privacy law compliance for organisations handling personal information of Canadian residents |
+
+<Info>
+  Neuramine's system prompt architecture enforces compliance guardrails at the infrastructure layer, not just the application layer. Layer 1 (platform) and Layer 2 (vertical) prompts cannot be overridden by any API call — this is enforced server-side.
+</Info>
+
+### Support and SLA
+
+- **Custom SLA** — negotiate uptime guarantees, incident response times, and escalation paths that match your operational requirements.
+- **Dedicated account manager** — a named contact who knows your deployment, not a shared support queue.
+- **Priority engineering support** — direct access to the Neuramine engineering team for integration questions and custom feature requests.
+
+## How to get started
+
+<Steps>
+  <Step title="Reach out">
+    Email [hello@neuramine.ai](mailto:hello@neuramine.ai) with a brief description of your organisation, use case, team size, and any compliance requirements. You'll hear back within one business day.
+  </Step>
+  <Step title="Discovery call">
+    A Neuramine solutions engineer will schedule a call to understand your infrastructure needs, data residency requirements, and integration constraints.
+  </Step>
+  <Step title="Custom proposal">
+    Neuramine prepares a proposal covering pricing, GPU allocation, SLA terms, and any compliance documentation (BAA, DPA) relevant to your industry.
+  </Step>
+  <Step title="Onboarding">
+    Once you sign, your dedicated infrastructure is provisioned, SSO is configured, and your team is onboarded — typically within five business days.
+  </Step>
+</Steps>
+
+<CardGroup cols={1}>
+  <Card title="Contact Enterprise Sales" icon="envelope" href="mailto:hello@neuramine.ai">
+    Email **hello@neuramine.ai** to start the conversation. Include your use case, approximate team size, and any compliance requirements (HIPAA, PIPEDA, SOC 2, etc.) to help us prepare.
+  </Card>
+</CardGroup>

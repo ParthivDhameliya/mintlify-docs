@@ -1,0 +1,78 @@
+---
+title: "Persistent AI Memory Across Conversations in Neuramine"
+sidebarTitle: "Memory"
+description: "Neuramine automatically remembers facts, preferences, and context from your conversations and injects them at the start of every new session."
+---
+
+Neuramine's memory feature gives your AI a persistent understanding of who you are and how you work. After each conversation, the platform automatically extracts important facts, preferences, and context and stores them as discrete memory entries. At the start of every new conversation, the most relevant memories are injected into the AI's context so you never have to re-introduce yourself or repeat your preferences.
+
+## How Memory Works
+
+Memory extraction runs entirely in the background after the AI responds — it never slows down your replies. Here is the full lifecycle:
+
+<Steps>
+  <Step title="You have a conversation">
+    Chat normally. The AI responds in real time. Nothing changes about the chat experience.
+  </Step>
+  <Step title="Facts are extracted automatically">
+    After the AI sends a response, a background process powered by [mem0](https://mem0.ai) analyzes the exchange and extracts meaningful facts — things like your name, role, preferred programming language, timezone, or recurring workflows.
+  </Step>
+  <Step title="Memories are stored per user per workspace">
+    Each memory entry is scoped to your user account **and** the specific workspace. Memories from your coding workspace do not bleed into your document Q&A workspace.
+  </Step>
+  <Step title="Memories are injected at the start of the next conversation">
+    When you open a new conversation, the most relevant memories are retrieved and inserted into the system prompt as a `THINGS YOU KNOW ABOUT THIS USER` block. The AI reads these before your first message, so it already knows the context.
+  </Step>
+</Steps>
+
+<Note>
+  Memory extraction only runs on responses that pass output validation. If a response is blocked by compliance guardrails, no memory is extracted from that exchange.
+</Note>
+
+## Viewing and Deleting Memories
+
+You can inspect and manage every stored memory at any time.
+
+<Tabs>
+  <Tab title="Dashboard">
+    1. Go to **Settings → Memory** in the Neuramine dashboard.
+    2. Browse the list of memory entries. Each entry shows the extracted fact and the date it was created.
+    3. Click the **trash** icon next to any entry to delete it immediately.
+    4. Use **Delete all** to clear all memories for the current workspace.
+  </Tab>
+  <Tab title="API">
+    Use the memory API with your workspace API key to list or delete memories programmatically.
+
+    ```bash List all memories
+    curl https://api.neuramine.ai/v1/memory \
+      -H 'Authorization: Bearer nrm_sk_...'
+    ```
+
+    ```bash Delete a specific memory
+    curl -X DELETE https://api.neuramine.ai/v1/memory/{memory_id} \
+      -H 'Authorization: Bearer nrm_sk_...'
+    ```
+  </Tab>
+</Tabs>
+
+## Memory Limits by Plan
+
+The number of memory entries injected per conversation depends on your plan. Higher tiers inject more context, which improves personalization for users with complex or long-running workflows.
+
+| Plan | Memories injected per conversation |
+|---|---|
+| Free | 3 |
+| Starter | 10 |
+| Max | 20 |
+
+<Info>
+  These limits control how many memories are **injected** per conversation, not how many are stored. The total number of stored memories is not capped — you can accumulate as many as your usage generates.
+</Info>
+
+## Privacy and Scope
+
+Memory entries are isolated per user per workspace and are never shared across workspaces or users. Because Neuramine runs on your own infrastructure, all memory data stays within your deployment. You retain full ownership and can delete individual entries or all entries at any time without contacting support.
+
+<Tip>
+  If the AI starts making incorrect assumptions based on outdated information, go to **Settings → Memory** and delete the stale entries. New, correct facts will be extracted automatically from your next conversation.
+</Tip>

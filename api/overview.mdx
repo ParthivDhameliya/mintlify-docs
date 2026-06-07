@@ -1,0 +1,125 @@
+---
+title: "Neuramine API Reference — OpenAI-Compatible REST API"
+sidebarTitle: "Overview"
+description: "Neuramine's REST API is a drop-in replacement for the OpenAI API. Change your base URL and API key — every existing integration keeps working."
+---
+
+The Neuramine API gives you programmatic access to every capability on the platform — language model inference, speech-to-text, text-to-speech, memory, document retrieval, and more. Because the API is fully compatible with the OpenAI interface, any tool that supports a configurable base URL works with zero code changes beyond swapping in your Neuramine credentials.
+
+## Base URL
+
+All requests go to the following base URL:
+
+```
+https://api.neuramine.ai/v1/
+```
+
+Every endpoint path below is relative to this base URL.
+
+## Migrating from OpenAI
+
+Switching from the OpenAI API requires exactly two changes: set `base_url` to the Neuramine endpoint and replace your OpenAI key with your `nrm_sk_` workspace key. Your models, parameters, and streaming logic stay the same.
+
+```python Python
+# Before
+from openai import OpenAI
+client = OpenAI(api_key="sk-...")
+
+# After — only two lines change
+from openai import OpenAI
+client = OpenAI(
+    base_url="https://api.neuramine.ai/v1/",
+    api_key="nrm_sk_workspace_abc_..."
+)
+```
+
+<Note>
+  The Neuramine API is compatible with the **OpenAI Python SDK**, **OpenAI Node.js SDK**, **LangChain**, **LlamaIndex**, **n8n**, **Zapier**, and any other tool that accepts a configurable base URL.
+</Note>
+
+## Endpoints
+
+The table below lists every public API endpoint. All requests and responses use JSON. Streaming responses use [Server-Sent Events (SSE)](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events).
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/v1/chat/completions` | LLM inference with optional streaming |
+| `POST` | `/v1/audio/transcriptions` | Speech-to-text (Whisper-compatible format) |
+| `POST` | `/v1/audio/speech` | Text-to-speech (OpenAI TTS-compatible format) |
+| `GET` | `/v1/models` | List available models in your workspace |
+| `POST` | `/v1/models/recommend` | Get a hardware recommendation for a given model |
+| `GET` | `/v1/memory` | List long-term memory facts (mem0) |
+| `DELETE` | `/v1/memory/{id}` | Delete a specific memory fact |
+| `POST` | `/v1/documents` | Upload a document to the workspace knowledge base |
+| `GET` | `/v1/documents` | List documents in the workspace knowledge base |
+| `DELETE` | `/v1/documents/{id}` | Delete a document from the knowledge base |
+| `GET` | `/v1/usage` | Retrieve usage statistics for your workspace |
+| `GET` | `/v1/health` | Health check — returns platform status |
+| `POST` | `/v1/workspaces` | Create a new workspace |
+| `GET` | `/v1/workspaces` | List all workspaces you own or belong to |
+| `PATCH` | `/v1/workspaces/{id}` | Update workspace settings |
+| `DELETE` | `/v1/workspaces/{id}` | Permanently delete a workspace |
+| `POST` | `/v1/workspaces/{id}/rotate-key` | Rotate the API key for a workspace |
+
+<Tip>
+  Detailed request and response schemas for each endpoint are documented on their individual reference pages. Use the sidebar to navigate.
+</Tip>
+
+## Rate Limits
+
+The default rate limit is **60 requests per minute** per workspace. Your workspace admin can adjust this limit from the workspace settings page. When you exceed the limit, the API returns `HTTP 429` with a `Retry-After` header indicating when you can retry.
+
+<Info>
+  Rate limits apply per workspace, not per API key or per user. All traffic to a single workspace shares the same bucket.
+</Info>
+
+## Input Token Limits
+
+The maximum number of input tokens accepted per request depends on your plan tier.
+
+| Tier | Max Input Tokens |
+|------|-----------------|
+| Free | 2,048 |
+| Starter | 32,768 |
+| Max | 128,000 |
+
+Requests that exceed your tier's limit return `HTTP 400`. Upgrade your plan to unlock higher context windows.
+
+## Error Codes
+
+The API uses standard HTTP status codes. All error responses include a JSON body with a `detail` field describing the problem.
+
+| Status | Meaning |
+|--------|---------|
+| `200` | Success |
+| `400` | Bad request — for example, input exceeds your tier's token limit |
+| `401` | Invalid or missing API key |
+| `403` | Workspace suspended or access denied |
+| `404` | Resource not found |
+| `429` | Rate limit exceeded |
+| `500` | Inference or internal server error |
+
+**Example error response:**
+
+```json
+{
+  "detail": "Rate limit exceeded. Retry after 12 seconds."
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/api/authentication">
+    Learn how to create, use, and rotate your API key.
+  </Card>
+  <Card title="Chat Completions" icon="message" href="/api/chat-completions">
+    Send your first inference request and stream responses.
+  </Card>
+  <Card title="Models" icon="microchip" href="/api/models">
+    List available models and get hardware recommendations.
+  </Card>
+  <Card title="Usage & Billing" icon="chart-bar" href="/api/workspaces">
+    Monitor request volume and credit consumption.
+  </Card>
+</CardGroup>

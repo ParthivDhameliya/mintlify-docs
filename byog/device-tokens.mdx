@@ -1,0 +1,83 @@
+---
+title: "BYOG Device Tokens: Authentication and Key Management"
+sidebarTitle: "Device Tokens"
+description: "Learn what device tokens are, how to generate and revoke them, their lifecycle, and where the agent stores them on each supported platform."
+---
+
+A device token is the secret credential that authorises your machine to connect to a Neuramine workspace. When you run the agent for the first time, it prompts you to paste a token — after that, the token is saved to a local config file and loaded automatically on every subsequent start. Tokens are scoped to a single device and workspace pair; they cannot be reused across accounts.
+
+## What a device token looks like
+
+All Neuramine device tokens share the same format:
+
+```
+nt_xxxxxxxxxxxxxxxxxxxx
+```
+
+The `nt_` prefix identifies it as a Neuramine device token. The remainder is a randomly generated, cryptographically unique string. Every token is shown **once** in the dashboard at the moment it is generated. Copy it before navigating away.
+
+<Warning>
+  Treat your device token exactly like a password. Anyone who obtains your token can connect a machine to your workspace and run inference on your account. Never commit a token to source control, paste it in a public forum, or share it in a screenshot.
+</Warning>
+
+## Generating a token
+
+<Steps>
+  <Step title="Open your workspace settings">
+    In the Neuramine dashboard, navigate to the workspace you want to connect a device to and click **Settings**.
+  </Step>
+  <Step title="Open the BYOG Device panel">
+    Select **BYOG Device** from the Settings sidebar.
+  </Step>
+  <Step title="Generate the token">
+    Click **Generate Device Token**. The token appears in a one-time display panel.
+  </Step>
+  <Step title="Copy the token immediately">
+    Copy the token to your clipboard before closing the panel or navigating away. The full token value is never shown again — if you lose it, you must revoke it and generate a new one.
+  </Step>
+</Steps>
+
+## Token lifecycle
+
+| Event | What happens |
+|-------|-------------|
+| **Token generated** | A new token is created and displayed once in the dashboard |
+| **Agent registered** | The agent saves the token to a platform-specific config file (see [Where tokens are stored](#where-tokens-are-stored)); authentication is confirmed |
+| **Agent restarted** | The agent reads the token from the config file — no manual input needed |
+| **Token revoked** | The agent disconnects within seconds and cannot reconnect until a new token is provided |
+| **New token generated** | The previous token for that device is invalidated immediately |
+
+## Revoking a compromised token
+
+If your machine is lost, stolen, or you suspect a token has been exposed, revoke it immediately:
+
+<Steps>
+  <Step title="Open workspace settings">
+    Go to **Settings → BYOG Device** in the affected workspace.
+  </Step>
+  <Step title="Revoke the token">
+    Locate the device in the **Registered Devices** list and click **Revoke Token**.
+  </Step>
+  <Step title="Confirm revocation">
+    Confirm the action in the dialog. The token is invalidated server-side instantly — the agent on the affected machine disconnects within seconds and will not be able to reconnect.
+  </Step>
+  <Step title="Generate a replacement token (optional)">
+    If you still have access to the machine and want to reconnect it, generate a new token, re-run the agent, and paste the new token when prompted. The agent replaces the old config entry with the new token automatically.
+  </Step>
+</Steps>
+
+<Info>
+  Revoking a token does not delete the device name or its history from the dashboard. Only the authentication credential is invalidated.
+</Info>
+
+## Where tokens are stored
+
+After the agent accepts a token on first run, it writes the token to a JSON config file at a platform-specific path. The agent reads this file on every subsequent start.
+
+| Platform | Config file path |
+|----------|-----------------|
+| Windows | `%APPDATA%\Neuramine\config.json` |
+| macOS | `~/Library/Application Support/Neuramine/config.json` |
+| Linux | `~/.config/neuramine/config.json` |
+
+If you need to move the agent to a different machine, do not copy the config file — generate a new token for the new machine instead. Each machine should authenticate with its own unique token.

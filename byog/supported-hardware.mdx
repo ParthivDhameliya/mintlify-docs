@@ -1,0 +1,79 @@
+---
+title: "Supported Hardware, GPU Tiers, and Model Recommendations"
+sidebarTitle: "Hardware"
+description: "Find the right inference backend and model for your hardware — NVIDIA GPU, Apple Silicon, CPU-only, and STT/TTS requirements covered."
+---
+
+The Neuramine agent detects your hardware at startup and selects the best available inference backend automatically. You do not need to configure anything — just pick a model that fits your machine's memory and the agent handles the rest. This page lists the supported hardware tiers, their backend engines, and recommended models for each memory configuration.
+
+## CPU (all platforms)
+
+Any machine with a modern CPU can run the Neuramine agent without a GPU. The agent uses **llama.cpp** for in-process inference, loading quantised GGUF models that are optimised for CPU throughput. Performance is slower than GPU-accelerated inference, but works reliably on any hardware — including older laptops and cloud VMs without GPU access.
+
+| RAM available | Recommended models |
+|--------------|-------------------|
+| 4 GB | `unsloth/Qwen3.5-2B-GGUF` (Q4\_K\_M) |
+| 8 GB | `unsloth/Qwen3.5-4B-GGUF`, `unsloth/Phi-4-mini-GGUF` |
+| 16 GB | `unsloth/Qwen3.5-9B-GGUF`, `unsloth/Llama-3.1-8B-GGUF` |
+| 32 GB | `unsloth/Phi-4-GGUF` (14B), `unsloth/Qwen3.5-14B-GGUF` |
+| 64 GB+ | `unsloth/Llama-3.3-70B-GGUF` (Q4\_K\_M) |
+
+<Tip>
+  **Q4\_K\_M** is the recommended quantisation level for CPU inference. It offers the best balance between output quality and memory footprint, fitting larger models into less RAM without a significant quality drop compared to higher-precision formats.
+</Tip>
+
+## NVIDIA GPU (CUDA)
+
+When the agent detects an NVIDIA GPU, it switches the inference backend to **vLLM**, which delivers significantly faster token generation than CPU-based llama.cpp. VRAM is the limiting factor — the model weights must fit entirely in GPU memory for full GPU inference.
+
+**Requirements:**
+- CUDA 11.8 or later
+- NVIDIA driver version 520 or later
+- Sufficient VRAM for the chosen model (see table below)
+
+<Warning>
+  AMD GPUs are not supported. The CUDA backend is NVIDIA-specific and the agent does not fall back to CPU automatically if an unsupported GPU is detected — verify your GPU before selecting a model.
+</Warning>
+
+| VRAM available | Recommended models |
+|---------------|-------------------|
+| 6 GB | `unsloth/Qwen3.5-4B-GGUF` |
+| 8 GB | `unsloth/Qwen3.5-9B-GGUF`, `unsloth/Llama-3.1-8B-GGUF` |
+| 16 GB | `unsloth/Qwen3.5-14B-GGUF`, `unsloth/Phi-4-GGUF` |
+| 24 GB | `Qwen/Qwen3.5-9B` (FP16 safetensors) |
+| 80 GB | `unsloth/Llama-3.3-70B-GGUF` |
+
+<Tip>
+  If your VRAM is borderline for a given model, use the GGUF quantised variant instead of the full FP16 weights — for example, `unsloth/Qwen3.5-9B-GGUF` on 8 GB VRAM rather than `Qwen/Qwen3.5-9B` FP16 which needs 24 GB.
+</Tip>
+
+## Apple Silicon (Metal)
+
+On Apple M1, M2, M3, and M4 chips, the agent uses **llama.cpp with Metal GPU layers**, offloading all model layers to the unified GPU. Apple Silicon uses unified memory — your RAM is shared between the CPU and GPU — so a 16 GB MacBook can run 8B parameter models at near-native GPU speeds.
+
+Performance on Apple Silicon is substantially better than CPU-only inference on x86 machines with equivalent RAM, and in many cases comparable to entry-level NVIDIA GPUs.
+
+| Unified RAM available | Recommended models |
+|----------------------|-------------------|
+| 8 GB | `unsloth/Qwen3.5-4B-GGUF` |
+| 16 GB | `unsloth/Qwen3.5-9B-GGUF`, `unsloth/Llama-3.1-8B-GGUF` |
+| 32 GB | `unsloth/Qwen3.5-14B-GGUF`, `unsloth/Phi-4-GGUF` |
+
+<Info>
+  Only Apple Silicon (arm64) is supported. Intel-based Macs are not supported and do not have a Metal GPU compatible with the agent's llama.cpp backend.
+</Info>
+
+## Speech-to-text and text-to-speech
+
+STT and TTS models run on CPU by default and are lightweight enough for most machines. On NVIDIA GPUs they are automatically offloaded for near real-time performance. Apple Silicon benefits from Metal acceleration for Whisper as well.
+
+| Model | CPU RAM required | GPU VRAM required |
+|-------|-----------------|------------------|
+| Whisper base / small | 1 GB | 512 MB |
+| Whisper medium / large | 3–6 GB | 1–3 GB |
+| Kokoro TTS | Bundled (minimal) | — |
+| Parler TTS | 4 GB | 2 GB |
+
+<Tip>
+  If you are running a large LLM that consumes most of your VRAM, Whisper and TTS models can still run on CPU in parallel. The performance impact is minimal for STT/TTS since these models are much smaller than LLMs.
+</Tip>

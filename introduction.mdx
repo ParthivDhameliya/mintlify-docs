@@ -1,0 +1,72 @@
+---
+title: "Neuramine: Private AI Platform on Your Own Hardware"
+sidebarTitle: "Introduction"
+description: "Neuramine runs LLMs, STT, and TTS on your own GPU with a ChatGPT-style chat UI and an OpenAI-compatible API — your data never leaves your machine."
+---
+
+Neuramine is a private AI platform that lets you run large language models, speech-to-text, and text-to-speech entirely on your own GPU or CPU. You get a polished, ChatGPT-style chat interface in your browser and a drop-in OpenAI-compatible API — with the guarantee that no prompts, responses, or audio ever leave your hardware.
+
+## What Neuramine gives you
+
+<CardGroup cols={2}>
+  <Card title="Bring Your Own GPU" icon="microchip" href="/byog/overview">
+    Connect any machine running the Neuramine agent. All inference runs on your device — the cloud only routes the connection.
+  </Card>
+  <Card title="Model Registry" icon="database" href="/models/overview">
+    Choose from curated LLMs, STT, and TTS models, or upload your own GGUF or ZIP-packaged model.
+  </Card>
+  <Card title="Chat Interface" icon="message" href="/features/chat">
+    A fast, clean chat UI that runs in your browser and streams responses directly from your device.
+  </Card>
+  <Card title="Voice & Audio" icon="microphone" href="/features/voice">
+    Full voice conversations with real-time on-device transcription and speech synthesis.
+  </Card>
+</CardGroup>
+
+## How it works
+
+When you send a message in Neuramine, the request travels over an encrypted WebSocket to the Neuramine agent running on your machine. The agent feeds the prompt to the local inference engine — GPU-accelerated inference for NVIDIA GPUs, llama.cpp for CPU and Apple Silicon — and streams the response back through the same connection. The Neuramine cloud acts as a secure relay; it never stores or inspects the content.
+
+This architecture is modelled on the same outbound-tunnel pattern used by GitHub Actions self-hosted runners and Cloudflare Tunnel. Your machine only needs outbound HTTPS on port 443 — already open on virtually every corporate and home network.
+
+## Key concepts
+
+| Term | Meaning |
+|------|---------|
+| **Workspace** | A named environment that combines one model, one device, a system prompt, a knowledge base, and a unique API key. Each workspace has its own isolated conversation history. |
+| **BYOG** | Bring Your Own GPU — you run the Neuramine agent on your own hardware as the inference backend. |
+| **Device** | A physical or virtual machine running the Neuramine agent, registered to your account with a device token. |
+| **Model** | An AI model from the registry — LLM (text generation), STT (speech-to-text), or TTS (text-to-speech). |
+
+## OpenAI-compatible API
+
+Neuramine exposes a fully OpenAI-compatible REST API at `https://api.neuramine.ai/v1/`. The supported endpoints include:
+
+- `POST /v1/chat/completions` — LLM inference with streaming
+- `POST /v1/audio/transcriptions` — speech-to-text in Whisper format
+- `POST /v1/audio/speech` — text-to-speech in OpenAI TTS format
+- `GET /v1/models` — list available models
+
+Migrating from OpenAI requires changing only two values: `base_url` and `api_key`. No other code changes are needed. API keys follow the format `nrm_sk_{workspace_id}_{32_chars}` and are scoped per workspace.
+
+## Privacy guarantee
+
+All inference runs on your machine. Neuramine's cloud infrastructure only routes the encrypted WebSocket connection — it never receives, stores, or inspects your prompts, responses, or audio data. Your data stays on your hardware, always.
+
+<Note>
+  Even Neuramine employees cannot see your conversations. The routing layer handles only encrypted connection metadata — not content.
+</Note>
+
+## Where to go next
+
+<CardGroup cols={3}>
+  <Card title="BYOG Overview" icon="microchip" href="/byog/overview">
+    Learn how to connect your own GPU as an inference backend.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/overview">
+    Explore every endpoint, parameter, and response format.
+  </Card>
+  <Card title="Models" icon="database" href="/models/overview">
+    Browse the model registry and find the right LLM, STT, or TTS model for your use case.
+  </Card>
+</CardGroup>

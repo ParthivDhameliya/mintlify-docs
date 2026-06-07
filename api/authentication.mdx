@@ -1,0 +1,177 @@
+---
+title: "API Authentication — API Keys and Authorization Headers"
+sidebarTitle: "Authentication"
+description: "Authenticate every Neuramine API request with a workspace API key. Learn how to find, use, rotate, and securely store your key."
+---
+
+Every request to the Neuramine API must include a valid API key. Your key is scoped to a single workspace — it carries the workspace's identity, tier limits, and rate limit configuration. Keep it secret: anyone with the key can make inference requests billed to your workspace credits.
+
+## API Key Format
+
+Neuramine API keys follow a fixed format so they are easy to identify in code and logs:
+
+```
+nrm_sk_{workspace_id}_{32_random_chars}
+```
+
+**Example:** `nrm_sk_a1b2c3d4-e5f6-7890-abcd-ef1234567890_Xy9mZ3qT8vLpNwJ2RkAsUoBdCfGhEiMn`
+
+The embedded workspace ID lets Neuramine validate the key and route the request without a database lookup on every hop.
+
+<Note>
+  Your API key is shown exactly once — when the workspace is first created or when you rotate the key. Neuramine stores only a secure hash of the key and cannot retrieve the plaintext for you. If you lose it, rotate it to generate a new one.
+</Note>
+
+## Find Your API Key
+
+<Steps>
+  <Step title="Open the Dashboard">
+    Sign in at [app.neuramine.ai](https://app.neuramine.ai) and navigate to the workspace you want to use.
+  </Step>
+  <Step title="Open Workspace Settings">
+    Click **Settings** in the workspace sidebar.
+  </Step>
+  <Step title="Locate the API Key section">
+    Scroll to the **API Key** section. The full key is displayed only during workspace creation. After that, only the prefix (`nrm_sk_{workspace_id}_`) is shown to confirm which key is active.
+  </Step>
+  <Step title="Copy and store the key securely">
+    Copy the key to a password manager or secrets manager. Do not paste it into source code.
+  </Step>
+</Steps>
+
+## Authenticate Requests
+
+Pass your key in the `Authorization` header using the `Bearer` scheme on every request.
+
+```http
+Authorization: Bearer nrm_sk_your_workspace_key
+```
+
+The following examples show how to configure authentication with common clients.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from openai import OpenAI
+
+    client = OpenAI(
+        base_url="https://api.neuramine.ai/v1/",
+        api_key="nrm_sk_your_workspace_key"
+    )
+
+    response = client.chat.completions.create(
+        model="your-model-id",
+        messages=[{"role": "user", "content": "Hello!"}]
+    )
+    print(response.choices[0].message.content)
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    import OpenAI from 'openai';
+
+    const client = new OpenAI({
+      baseURL: 'https://api.neuramine.ai/v1/',
+      apiKey: 'nrm_sk_your_workspace_key'
+    });
+
+    const response = await client.chat.completions.create({
+      model: 'your-model-id',
+      messages: [{ role: 'user', content: 'Hello!' }]
+    });
+    console.log(response.choices[0].message.content);
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl https://api.neuramine.ai/v1/models \
+      -H 'Authorization: Bearer nrm_sk_your_workspace_key'
+    ```
+  </Tab>
+</Tabs>
+
+## Rotate Your API Key
+
+Rotate your key if it is compromised, accidentally exposed, or you simply want to cycle credentials on a schedule. Rotation immediately invalidates the old key — any application still using it will receive `HTTP 401` until updated with the new key.
+
+You can rotate your key in two ways:
+
+<Tabs>
+  <Tab title="Dashboard">
+    1. Go to **Dashboard → Workspace → Settings → API Key**.
+    2. Click **Rotate**.
+    3. Confirm the action in the dialog.
+    4. Copy and store the new key before closing the page.
+  </Tab>
+  <Tab title="API">
+    Send a `POST` request to the rotate endpoint. You must be authenticated as the workspace owner.
+
+    ```bash
+    curl -X POST https://api.neuramine.ai/v1/workspaces/{workspace_id}/rotate-key \
+      -H 'Authorization: Bearer nrm_sk_your_current_key'
+    ```
+
+    **Response:**
+    ```json
+    {
+      "api_key": "nrm_sk_workspace_abc_NewKeyHere...",
+      "note": "Previous key is now invalid. Save this key — it will not be shown again."
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+  The old key stops working the moment you rotate. Update all services, CI/CD pipelines, and environment variables before rotating in a production environment.
+</Warning>
+
+## Authentication Error Responses
+
+The table below describes the authentication-related HTTP status codes you may encounter.
+
+| Status | When it occurs | What to do |
+|--------|---------------|------------|
+| `401 Unauthorized` | The key is missing, malformed, or does not match any active workspace | Check that you are sending the full key in the `Authorization: Bearer` header |
+| `403 Forbidden` | The workspace is suspended or you are attempting an action you do not have permission to perform | Contact your workspace admin or Neuramine support |
+| `429 Too Many Requests` | Your workspace has exceeded its rate limit (default 60 req/min) | Back off and retry after the `Retry-After` interval, or ask your admin to raise the limit |
+
+**Example 401 response:**
+```json
+{
+  "detail": "Invalid or missing API key."
+}
+```
+
+**Example 403 response:**
+```json
+{
+  "detail": "Workspace suspended or access denied."
+}
+```
+
+## Security Best Practices
+
+Follow these guidelines to keep your API key and workspace safe.
+
+<CardGroup cols={2}>
+  <Card title="Use environment variables" icon="terminal" href="/api/authentication#authenticate-requests">
+    Store your key in an environment variable such as `NEURAMINE_API_KEY` and read it at runtime. Never hard-code it in source files.
+
+    ```bash
+    export NEURAMINE_API_KEY="nrm_sk_your_workspace_key"
+    ```
+  </Card>
+  <Card title="Keep it out of version control" icon="code-branch" href="/api/authentication#security-best-practices">
+    Add `.env` files to `.gitignore`. Use a secrets manager (AWS Secrets Manager, HashiCorp Vault, Doppler) for production deployments.
+  </Card>
+  <Card title="Rotate on any suspected exposure" icon="rotate" href="/api/authentication#rotate-your-api-key">
+    If your key appears in logs, a PR diff, or any public location, rotate it immediately. There is no cool-down period.
+  </Card>
+  <Card title="One key per workspace" icon="lock" href="/api/authentication#security-best-practices">
+    Each workspace has exactly one API key. If multiple teams share a workspace, rotate the key when a team member leaves, or create separate workspaces per team.
+  </Card>
+</CardGroup>
+
+<Tip>
+  In CI/CD pipelines, inject your API key as a masked secret variable. Most platforms (GitHub Actions, GitLab CI, CircleCI) redact masked secrets from build logs automatically.
+</Tip>

@@ -1,0 +1,117 @@
+{
+  "projectType": "saas",
+  "projectName": "Neuramine",
+  "projectDescription": "Neuramine is a private AI platform that lets you run LLMs, speech-to-text, and text-to-speech entirely on your own hardware — with a polished chat interface and an OpenAI-compatible API, and zero data sent to third-party AI vendors.",
+  "theme": "luma",
+  "primaryColor": "#6C47FF",
+  "lightColor": "#EDE9FF",
+  "darkColor": "#3B1FA8",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "getting-started/sign-up",
+              "getting-started/create-workspace"
+            ]
+          },
+          {
+            "group": "BYOG",
+            "pages": [
+              "byog/overview",
+              "byog/download-agent",
+              "byog/connect-device",
+              "byog/device-tokens",
+              "byog/supported-hardware"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/chat",
+              "features/documents",
+              "features/voice",
+              "features/memory",
+              "features/workspaces"
+            ]
+          },
+          {
+            "group": "Models",
+            "pages": [
+              "models/overview",
+              "models/llm",
+              "models/stt",
+              "models/tts"
+            ]
+          },
+          {
+            "group": "Billing & Plans",
+            "pages": [
+              "billing/plans",
+              "billing/credits",
+              "billing/enterprise"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/overview",
+              "api/authentication"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/chat-completions",
+              "api/audio",
+              "api/models",
+              "api/memory",
+              "api/documents",
+              "api/workspaces"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "BYOG (Bring Your Own GPU) — connect any machine as the inference backend with zero inbound ports",
+    "OpenAI-compatible API — drop-in replacement, change only base_url and api_key",
+    "Private inference — all AI runs on your hardware, Neuramine cloud handles routing only",
+    "LLM, STT, and TTS support — full voice conversations on-device",
+    "RAG knowledge base — upload documents and ask questions about them",
+    "Long-term memory — mem0 remembers facts and preferences across conversations",
+    "3-layer system prompt architecture — platform, vertical compliance, and workspace customization",
+    "HIPAA/PIPEDA compliance — AES-256 encryption, 6-year audit logs, per-workspace data isolation",
+    "Multi-hardware support — NVIDIA GPU (vLLM), Apple Silicon (Metal), and CPU (llama.cpp)",
+    "Workspace-scoped API keys — format nrm_sk_{workspace_id}_{32_chars}"
+  ],
+  "publicApiSurface": [
+    "POST /v1/chat/completions — OpenAI-compatible LLM inference, streaming supported",
+    "POST /v1/audio/transcriptions — STT in OpenAI Whisper format",
+    "POST /v1/audio/speech — TTS in OpenAI TTS format",
+    "GET /v1/models — list available models",
+    "POST /v1/models/recommend — hardware-aware model recommendation",
+    "GET /v1/memory — list mem0 facts for this workspace",
+    "DELETE /v1/memory/{id} — delete a specific memory fact",
+    "POST /v1/documents — upload document to knowledge base",
+    "GET /v1/documents — list documents in workspace",
+    "DELETE /v1/documents/{id} — remove document from knowledge base",
+    "POST /v1/workspaces — create workspace",
+    "GET /v1/workspaces — list workspaces",
+    "PATCH /v1/workspaces/{id} — update workspace settings",
+    "POST /v1/workspaces/{id}/rotate-key — rotate API key",
+    "GET /v1/usage — usage and billing stats",
+    "GET /v1/health — health check"
+  ]
+}

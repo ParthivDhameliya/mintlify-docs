@@ -1,0 +1,289 @@
+---
+title: "Models — List Available Models and Get Recommendations"
+sidebarTitle: "Models"
+description: "Retrieve the full Neuramine model catalogue and get hardware-aware model recommendations sized to your machine's CPU type and RAM."
+---
+
+Neuramine maintains a curated catalogue of open-weight LLMs, STT models, and TTS models. The models endpoint lets you list every available model in an OpenAI-compatible format, and a companion recommendation endpoint returns the best-fit models for a specific hardware profile. Use the recommendation endpoint when building setup wizards or onboarding flows for BYOG and CPU workspaces.
+
+## Authentication
+
+Both endpoints require your workspace API key or a valid user session token.
+
+```
+Authorization: Bearer nrm_sk_<workspace_id>_<32_chars>
+```
+
+---
+
+## List models
+
+Returns the full model catalogue in the OpenAI `list` response envelope.
+
+### Endpoint
+
+```
+GET https://api.neuramine.ai/v1/models
+```
+
+### Response
+
+<ResponseField name="object" type="string">
+  Always `"list"`.
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Array of model objects.
+
+  <Expandable title="model object">
+    <ResponseField name="id" type="string">
+      The model ID to use in `chat/completions` and workspace creation requests (e.g. `"llama-3.1-8b"`).
+    </ResponseField>
+    <ResponseField name="object" type="string">
+      Always `"model"`.
+    </ResponseField>
+    <ResponseField name="owned_by" type="string">
+      Always `"neuramine"`.
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Human-readable model name (e.g. `"Llama 3.1 8B"`).
+    </ResponseField>
+    <ResponseField name="params_b" type="number">
+      Model size in billions of parameters.
+    </ResponseField>
+    <ResponseField name="min_ram_gb" type="integer">
+      Minimum RAM required to run this model (GB). Relevant for BYOG and CPU workspaces.
+    </ResponseField>
+    <ResponseField name="context_length" type="integer">
+      Maximum context window in tokens.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.neuramine.ai/v1/models \
+  -H "Authorization: Bearer nrm_sk_YOUR_KEY"
+```
+
+```python Python
+import requests
+
+resp = requests.get(
+    "https://api.neuramine.ai/v1/models",
+    headers={"Authorization": "Bearer nrm_sk_YOUR_KEY"},
+)
+for model in resp.json()["data"]:
+    print(model["id"], model["params_b"], "B params")
+```
+
+</CodeGroup>
+
+```json Example response
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "llama-3.2-1b",
+      "object": "model",
+      "owned_by": "neuramine",
+      "name": "Llama 3.2 1B",
+      "params_b": 1,
+      "min_ram_gb": 4,
+      "context_length": 8192
+    },
+    {
+      "id": "llama-3.2-3b",
+      "object": "model",
+      "owned_by": "neuramine",
+      "name": "Llama 3.2 3B",
+      "params_b": 3,
+      "min_ram_gb": 8,
+      "context_length": 8192
+    },
+    {
+      "id": "llama-3.1-8b",
+      "object": "model",
+      "owned_by": "neuramine",
+      "name": "Llama 3.1 8B",
+      "params_b": 8,
+      "min_ram_gb": 16,
+      "context_length": 32768
+    },
+    {
+      "id": "qwen-2.5-14b",
+      "object": "model",
+      "owned_by": "neuramine",
+      "name": "Qwen 2.5 14B",
+      "params_b": 14,
+      "min_ram_gb": 32,
+      "context_length": 32768
+    },
+    {
+      "id": "llama-3.1-70b",
+      "object": "model",
+      "owned_by": "neuramine",
+      "name": "Llama 3.1 70B",
+      "params_b": 70,
+      "min_ram_gb": 80,
+      "context_length": 32768
+    },
+    {
+      "id": "mistral-7b",
+      "object": "model",
+      "owned_by": "neuramine",
+      "name": "Mistral 7B",
+      "params_b": 7,
+      "min_ram_gb": 16,
+      "context_length": 32768
+    },
+    {
+      "id": "phi-3-mini",
+      "object": "model",
+      "owned_by": "neuramine",
+      "name": "Phi-3 Mini",
+      "params_b": 3.8,
+      "min_ram_gb": 8,
+      "context_length": 4096
+    },
+    {
+      "id": "gemma-2-9b",
+      "object": "model",
+      "owned_by": "neuramine",
+      "name": "Gemma 2 9B",
+      "params_b": 9,
+      "min_ram_gb": 20,
+      "context_length": 8192
+    }
+  ]
+}
+```
+
+---
+
+## Recommend models
+
+Given a hardware profile, this endpoint returns the best-fit LLM, STT, and TTS models for that machine. Use this during workspace setup to guide users toward models their hardware can actually run.
+
+### Endpoint
+
+```
+POST https://api.neuramine.ai/v1/models/recommend
+```
+
+### Request
+
+<ParamField body="cpu_type" type="string" required>
+  The CPU architecture class. Must be one of:
+
+  | Value | Examples |
+  |---|---|
+  | `apple_silicon` | M1, M2, M3, M4 chips |
+  | `modern_cpu` | AMD Ryzen 7000 series, Intel 13th gen and newer |
+  | `standard_cpu` | Intel Core i5/i7 8th–12th gen, AMD Ryzen 5000 |
+  | `low_end_cpu` | Older or low-power processors, Raspberry Pi |
+</ParamField>
+
+<ParamField body="ram_gb" type="integer" required>
+  Total system RAM in gigabytes (e.g. `16`).
+</ParamField>
+
+<ParamField body="has_nvidia_gpu" type="boolean" default="false">
+  Set `true` if the machine has an NVIDIA GPU. When `true`, the response recommends upgrading to the Starter plan to use BYOG with GPU acceleration instead of returning CPU model recommendations.
+</ParamField>
+
+### Response
+
+<ResponseField name="recommended_llm" type="string | null">
+  The recommended LLM model ID for this hardware, or `null` when an NVIDIA GPU upgrade is suggested.
+</ResponseField>
+
+<ResponseField name="recommended_stt" type="string | null">
+  The recommended STT model ID, or `null` when an upgrade is suggested.
+</ResponseField>
+
+<ResponseField name="recommended_tts" type="string | null">
+  The recommended TTS model ID, or `null` when an upgrade is suggested.
+</ResponseField>
+
+<ResponseField name="note" type="string">
+  A human-readable description of the recommendation rationale (e.g. `"Apple Silicon 16GB+"`).
+</ResponseField>
+
+<ResponseField name="upgrade_suggested" type="boolean">
+  `true` when the hardware has an NVIDIA GPU and would benefit significantly from upgrading to Starter BYOG.
+</ResponseField>
+
+<ResponseField name="all_models" type="array">
+  The full LLM model catalogue (same shape as `GET /v1/models`), included when `upgrade_suggested` is `false`.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.neuramine.ai/v1/models/recommend \
+  -H "Authorization: Bearer nrm_sk_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cpu_type": "apple_silicon",
+    "ram_gb": 16,
+    "has_nvidia_gpu": false
+  }'
+```
+
+```python Python
+import requests
+
+resp = requests.post(
+    "https://api.neuramine.ai/v1/models/recommend",
+    headers={"Authorization": "Bearer nrm_sk_YOUR_KEY"},
+    json={
+        "cpu_type": "apple_silicon",
+        "ram_gb": 16,
+        "has_nvidia_gpu": False,
+    },
+)
+rec = resp.json()
+print("LLM:", rec["recommended_llm"])
+print("STT:", rec["recommended_stt"])
+print("TTS:", rec["recommended_tts"])
+```
+
+</CodeGroup>
+
+```json Example response (Apple Silicon, 16 GB)
+{
+  "recommended_llm": "llama-3.1-8b",
+  "recommended_stt": "whisper-large-v3",
+  "recommended_tts": "kokoro-82m",
+  "note": "Apple Silicon 16GB+",
+  "upgrade_suggested": false,
+  "all_models": [ ... ]
+}
+```
+
+```json Example response (NVIDIA GPU detected)
+{
+  "recommended_llm": null,
+  "recommended_stt": null,
+  "recommended_tts": null,
+  "note": "NVIDIA GPU detected — upgrade to Starter to use BYOG for much faster inference.",
+  "upgrade_suggested": true
+}
+```
+
+## Recommendation matrix
+
+| CPU type | Min RAM | Recommended LLM | STT | TTS |
+|---|---|---|---|---|
+| `apple_silicon` | 16 GB | llama-3.1-8b | whisper-large-v3 | kokoro-82m |
+| `apple_silicon` | 8 GB | llama-3.2-3b | whisper-small | kokoro-82m |
+| `modern_cpu` | 32 GB | qwen-2.5-14b | distil-whisper | kokoro-82m |
+| `modern_cpu` | 16 GB | llama-3.1-8b | whisper-small | kokoro-82m |
+| `standard_cpu` | 8 GB | llama-3.2-3b | whisper-small | kokoro-82m |
+| `low_end_cpu` | 4 GB | llama-3.2-1b | whisper-small | kokoro-82m |

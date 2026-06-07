@@ -1,0 +1,161 @@
+---
+title: "Neuramine Workspaces: Create, Configure, and Manage"
+sidebarTitle: "Workspaces"
+description: "A workspace bundles one model, GPU source, system prompt, knowledge base, and API key into a single isolated environment you can spin up in minutes."
+---
+
+A workspace is the core unit of Neuramine. Every workspace packages exactly one AI model, one GPU source, one system prompt, one knowledge base, one API key, and one shared conversation history into a fully isolated environment. You can run multiple workspaces simultaneously — a coding assistant on your own GPU, a document Q&A workspace on serverless, a customer-facing voice bot on a dedicated instance — each with its own configuration and access controls.
+
+## Workspace Components
+
+<CardGroup cols={2}>
+  <Card title="Model" icon="brain" href="/models">
+    The LLM, STT, or TTS model that powers the workspace. Configured at creation and changeable via migration.
+  </Card>
+  <Card title="GPU Source" icon="server" href="/features/workspaces#gpu-sources">
+    Where inference runs — serverless, dedicated, BYOG, or CPU. See the [GPU Sources table](#gpu-sources) below.
+  </Card>
+  <Card title="System Prompt" icon="terminal" href="/features/workspaces#system-prompt-customization">
+    Layer 3 of the three-layer prompt architecture. Controls the assistant's name, tone, and domain-specific workflows.
+  </Card>
+  <Card title="Knowledge Base" icon="database" href="/features/documents">
+    An isolated vector knowledge base for this workspace's documents. Automatically searched on every message.
+  </Card>
+  <Card title="API Key" icon="key" href="/features/workspaces#rotating-your-api-key">
+    Format: `nrm_sk_{workspace_id}_{32_chars}`. Scoped to this workspace only. Can be rotated at any time.
+  </Card>
+  <Card title="Conversation History" icon="messages" href="/features/chat">
+    All conversations in a workspace are shared among its members and browsable in the left sidebar.
+  </Card>
+</CardGroup>
+
+## Creating a Workspace
+
+<Steps>
+  <Step title="Click New Workspace">
+    From the Neuramine dashboard, click the **+ New Workspace** button in the sidebar.
+  </Step>
+  <Step title="Name your workspace and choose a vertical">
+    Give the workspace a descriptive name (e.g., "Legal Contract Review"). Select a vertical — **General**, **Healthcare**, **Finance**, or **Legal** — to apply the appropriate compliance guardrails automatically.
+  </Step>
+  <Step title="Select a model">
+    Browse the model registry and pick the LLM that fits your use case. For serverless GPU, models up to 70B parameters are supported on a single GPU. Dedicated and BYOG have no parameter cap.
+  </Step>
+  <Step title="Choose a GPU source">
+    Select **Serverless**, **Dedicated**, **BYOG**, or **CPU**. See the [GPU Sources table](#gpu-sources) for details on each option.
+  </Step>
+  <Step title="Configure the system prompt">
+    Customize the Layer 3 system prompt to set the assistant's name, tone, and any domain-specific instructions. A default prompt is pre-filled based on your workspace name and vertical.
+  </Step>
+  <Step title="Save your API key">
+    After creation, your workspace API key is displayed once. Copy it and store it securely — it cannot be retrieved again. You can always rotate it later.
+  </Step>
+</Steps>
+
+<Warning>
+  Your API key is shown only once at creation. If you lose it, rotate the key immediately from **Workspace Settings → API Key**.
+</Warning>
+
+## Plan Limits
+
+| Plan | Workspaces |
+|---|---|
+| Free | 1 |
+| Starter | 3 |
+| Max | 10 |
+| Enterprise | Unlimited |
+
+## GPU Sources
+
+Each GPU source has different trade-offs between cost, control, and cold-start time.
+
+| Source | Description | Best for |
+|---|---|---|
+| **Serverless** | Runs on RunPod. Scales to zero when idle — no cost while unused. Cold start ~30–60 s. | Intermittent workloads, prototyping, cost-sensitive deployments |
+| **Dedicated** | Reserved GPU instance. Always on, no cold starts. Billed continuously. | Production workloads requiring consistent latency |
+| **BYOG** | Bring Your Own GPU. Runs the Neuramine Agent (Docker container) on your own hardware. All connections are outbound-only from your machine. | Maximum data privacy, GPU you already own |
+| **CPU** | Runs llama.cpp. No GPU required. Free on all plans. | Low-resource testing, small models, development |
+
+<Note>
+  The Free plan supports CPU workspaces only. Upgrade to Starter or Max for serverless GPU access.
+</Note>
+
+## System Prompt Customization
+
+Neuramine uses a three-layer system prompt architecture:
+
+- **Layer 1 — Platform** (hardcoded): Legal protection and infrastructure confidentiality. Never overridable.
+- **Layer 2 — Vertical** (compliance): Guardrails specific to your chosen vertical (healthcare, finance, legal). Never overridable via the API.
+- **Layer 3 — Workspace** (yours): Fully customizable by the workspace owner. Set the assistant's name, communication tone, workflows, formatting preferences, and domain-specific instructions.
+
+To edit the Layer 3 prompt, go to **Workspace Settings → System Prompt** and update the text field. Changes take effect on the next conversation.
+
+<Tip>
+  Be specific in your Layer 3 prompt. Instead of "be helpful," try "You are Aria, a legal research assistant. Always cite sources. Use formal British English. Structure every answer with a summary paragraph followed by numbered points."
+</Tip>
+
+## Team Members
+
+On **Starter** and higher plans, the workspace owner can invite team members to share a workspace.
+
+<Steps>
+  <Step title="Open Workspace Settings">
+    Navigate to **Workspace Settings → Members**.
+  </Step>
+  <Step title="Invite by email">
+    Enter the team member's email address and click **Invite**. They receive an email with a join link.
+  </Step>
+  <Step title="Manage access">
+    Remove a member at any time by clicking **Revoke** next to their name. Revoked members immediately lose access to the workspace and its conversation history.
+  </Step>
+</Steps>
+
+<Info>
+  Team members share the workspace's conversation history and knowledge base. The system prompt is visible to the workspace owner only.
+</Info>
+
+## Workspace Statuses
+
+| Status | Meaning |
+|---|---|
+| `online` | Model is loaded and ready to receive requests |
+| `starting` | GPU endpoint is provisioning or the model is loading — typically takes 30–90 seconds |
+| `offline` | Workspace is stopped (scaled to zero). Start it to resume |
+| `waiting_for_device` | BYOG workspace is waiting for the Neuramine Agent to connect on your hardware |
+| `error` | Provisioning failed. Check the workspace event log and retry or contact support |
+
+## Rotating Your API Key
+
+Rotate your workspace API key any time — for example, after a security incident or when offboarding a team member who had access to it.
+
+<Steps>
+  <Step title="Go to Workspace Settings → API Key">
+    Open the workspace and navigate to **Settings → API Key**.
+  </Step>
+  <Step title="Click Rotate Key">
+    Confirm the rotation. The previous key is **immediately invalidated** — any integrations using it will stop working at once.
+  </Step>
+  <Step title="Copy and store the new key">
+    Copy the new key. It is displayed only once. Update all your integrations and environment variables before closing the dialog.
+  </Step>
+</Steps>
+
+You can also rotate a key via the API:
+
+```bash
+curl -X POST https://api.neuramine.ai/v1/workspaces/{workspace_id}/rotate-key \
+  -H 'Authorization: Bearer nrm_sk_...'
+```
+
+## Migrating a Workspace
+
+You can move a workspace from one GPU source to another (for example, from serverless to BYOG) without losing conversation history, documents, or memories. Migration takes approximately 60 seconds and the workspace is briefly offline during the switchover.
+
+To migrate, go to **Workspace Settings → GPU Source** and select the new source. Alternatively, use the API:
+
+```bash
+curl -X POST https://api.neuramine.ai/v1/workspaces/{workspace_id}/migrate \
+  -H 'Authorization: Bearer nrm_sk_...' \
+  -H 'Content-Type: application/json' \
+  -d '{"new_gpu_source": "dedicated"}'
+```

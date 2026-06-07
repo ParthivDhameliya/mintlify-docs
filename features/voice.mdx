@@ -1,0 +1,96 @@
+---
+title: "Voice Input and Output for AI Conversations in Neuramine"
+sidebarTitle: "Voice"
+description: "Speak to your AI and hear responses read aloud using configurable STT and TTS models, with support for 99 languages including 20 Indian languages."
+---
+
+Neuramine supports full voice conversations — speak your messages instead of typing, and hear every AI response read back to you. Because both the speech-to-text (STT) and text-to-speech (TTS) models run in your own workspace, audio never leaves your infrastructure.
+
+## Requirements
+
+Before using voice features, make sure your workspace has the right models configured.
+
+<CardGroup cols={2}>
+  <Card title="Voice Input (STT)" icon="microphone" href="/models/stt">
+    An STT model must be active in your workspace. Neuramine uses **faster-whisper** for transcription. See [STT Models](/models/stt) for setup.
+  </Card>
+  <Card title="Voice Output (TTS)" icon="volume-high" href="/models/tts">
+    A TTS model must be active in your workspace. Supported TTS engines include **Kokoro**, **Piper**, and **Sarvam**. See [TTS Models](/models/tts) for setup.
+  </Card>
+</CardGroup>
+
+Your browser must also have **microphone access** granted for the Neuramine domain. If you have not already approved microphone access, your browser will prompt you the first time you click the microphone button.
+
+## Using Voice Input
+
+<Steps>
+  <Step title="Click the microphone button">
+    Click the **microphone** icon in the chat toolbar to start recording. The icon turns red and a live audio level indicator appears.
+  </Step>
+  <Step title="Speak your message">
+    Speak clearly at a normal pace. Recording continues until you click the microphone again or silence is detected automatically.
+  </Step>
+  <Step title="Review the transcription">
+    Your speech is transcribed and placed in the message input. Review it, edit if needed, then press **Enter** to send.
+  </Step>
+</Steps>
+
+<Note>
+  Silence detection stops recording automatically after a brief pause. You do not need to click the microphone button to end recording unless you want to stop early.
+</Note>
+
+## Using Voice Output
+
+Once a TTS model is configured in your workspace, you have two ways to hear responses:
+
+- **Per-message playback**: Click the **speaker** icon on any AI message to hear it read aloud. Click the icon again to stop playback.
+- **Auto-speak mode**: Enable **Auto-speak** in workspace settings to have every AI response read aloud automatically as soon as generation finishes.
+
+## Full Voice Conversation Mode
+
+With both an STT and a TTS model active, you can hold a continuous hands-free conversation:
+
+<Steps>
+  <Step title="Click the microphone">
+    The AI enters listening mode.
+  </Step>
+  <Step title="Speak your message">
+    The STT model transcribes your speech in real time.
+  </Step>
+  <Step title="Receive a spoken response">
+    The AI generates a text response and the TTS model reads it aloud automatically.
+  </Step>
+  <Step title="Continue the conversation">
+    Click the microphone again for your next turn. The conversation history is saved exactly like a text conversation.
+  </Step>
+</Steps>
+
+## Language Support
+
+| Model | Languages | Best for |
+|---|---|---|
+| Whisper (default) | 99 languages | General multilingual use |
+| `ai4bharat/indic-conformer-600m-multilingual` | 20 Indian languages | Hindi, Tamil, Telugu, Bengali, and 16 more |
+
+To switch the STT model, go to **Workspace Settings → Models** and select your preferred speech model from the dropdown.
+
+## Tips for Best Results
+
+<Tip>
+  Use a **headset or earbuds** when auto-speak is enabled. Built-in laptop speakers can cause microphone feedback that degrades transcription accuracy.
+</Tip>
+
+<CardGroup cols={2}>
+  <Card title="Quiet environment" icon="volume-xmark" href="/features/voice#tips-for-best-results">
+    Background noise — fans, music, open office chatter — reduces transcription accuracy. Use voice in a quiet space.
+  </Card>
+  <Card title="Clear, normal-pace speech" icon="waveform" href="/features/voice#tips-for-best-results">
+    Speak at your natural conversational pace. Whispering or shouting both reduce accuracy compared to a normal speaking voice.
+  </Card>
+  <Card title="Multilingual STT model" icon="language" href="/models/stt">
+    If you are not speaking English, confirm that your workspace uses a multilingual STT model such as Whisper large-v3 or the Indic Conformer model.
+  </Card>
+  <Card title="Shorter utterances" icon="scissors" href="/features/voice#tips-for-best-results">
+    Break long questions into shorter sentences. Very long continuous speech can hit silence detection before you finish.
+  </Card>
+</CardGroup>

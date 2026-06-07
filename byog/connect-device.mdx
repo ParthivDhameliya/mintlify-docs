@@ -1,0 +1,114 @@
+---
+title: "Connect Your Machine to a Neuramine BYOG Workspace"
+sidebarTitle: "Connect Device"
+description: "Step-by-step guide to linking your machine to a Neuramine workspace using a device token, from workspace creation to going online."
+---
+
+Connecting a device to Neuramine takes about five minutes. You create a workspace, generate a one-time device token, run the agent on your machine, and wait for the model to download. Once the model loads your workspace status flips to **Online** and you can start chatting immediately.
+
+<Steps>
+  <Step title="Create a workspace">
+    Log in to the Neuramine dashboard and create a new workspace. When prompted to choose a GPU source, select **BYOG (Bring Your Own GPU)**.
+
+    <Info>
+      If you already have a workspace you want to convert to BYOG, open its **Settings** and change the GPU source to **BYOG** from the dropdown.
+    </Info>
+  </Step>
+
+  <Step title="Generate a device token">
+    Inside your workspace, navigate to **Settings → BYOG Device → Generate Device Token**. The dashboard generates a new token and displays it once.
+
+    ```
+    nt_xxxxxxxxxxxxxxxxxxxx
+    ```
+
+    Copy it immediately — this is the only time the full token is shown. If you navigate away without copying it, you will need to revoke it and generate a new one.
+
+    <Warning>
+      Treat this token like a password. Anyone who has it can connect a machine to your workspace. See [Device Tokens](/byog/device-tokens) for full security guidance.
+    </Warning>
+  </Step>
+
+  <Step title="Run the agent on your machine">
+    If you have not yet downloaded the agent, see [Download the Agent](/byog/download-agent). Once the binary is ready, start it from your terminal:
+
+    <CodeGroup>
+
+    ```bash macOS / Linux
+    ./NeuramineAgent-macos-arm64
+    # or on Linux:
+    ./NeuramineAgent-linux-x64
+    ```
+
+    ```powershell Windows
+    .\NeuramineAgent-windows-x64.exe
+    ```
+
+    </CodeGroup>
+
+    The agent prompts for your device token. Paste the token you just copied:
+
+    ```
+    Enter your device token: nt_xxxxxxxxxxxxxxxxxxxx
+    ```
+
+    The token is saved to your local config file — you will not be asked for it again on future starts.
+  </Step>
+
+  <Step title="Name your device (optional)">
+    After the token is accepted, the agent asks for a human-readable name for this machine. Giving it a name makes it easier to identify in the dashboard when you have multiple devices registered.
+
+    ```
+    Give this device a name (e.g. "Home GPU", "Work Laptop") [Enter to skip]: Home GPU
+    ```
+
+    Press **Enter** to skip this step and use the machine hostname as the default name.
+  </Step>
+
+  <Step title="Wait for the model to download">
+    On first run the agent downloads the workspace-configured model to `~/.neuramine/models/`. Download progress is printed in the terminal:
+
+    ```
+    [ModelManager] Downloading unsloth/Qwen3.5-4B-GGUF...
+    [ModelManager] 45.2% (2,041 MB / 4,520 MB)
+    [ModelManager] Download complete. Loading model...
+    ```
+
+    Model files are cached after the first download. Every subsequent start of the agent skips the download and loads the model directly from disk.
+
+    <Tip>
+      Download time depends on your connection speed and the model size. A 4B GGUF model is roughly 2.5 GB; a 70B GGUF model can be over 40 GB. Choose a model that fits your available VRAM or RAM — see [Supported Hardware](/byog/supported-hardware) for recommendations.
+    </Tip>
+  </Step>
+
+  <Step title="Workspace goes online">
+    Once the model finishes loading, the agent logs a confirmation and your workspace status in the dashboard changes from **Offline** to **Online**:
+
+    ```
+    [Agent] Inference server ready on port 8080
+    [Agent] Workspace online — device: Home GPU
+    ```
+
+    Click **Open** in the dashboard to open the chat interface and start using your workspace.
+  </Step>
+</Steps>
+
+## Reconnecting after a restart
+
+If the agent stops — because you closed the terminal, rebooted, or lost your internet connection — it reconnects automatically when it restarts. The saved token is loaded from the local config file and no manual input is required. The workspace returns to **Online** status within a few seconds of the agent reconnecting.
+
+If your machine loses connectivity while the agent is running, the workspace shows **Offline** in the dashboard. The agent detects the dropped connection and reconnects automatically within 60 seconds once your network is restored. There is no manual intervention required and no automatic failover to a cloud GPU.
+
+<Note>
+  There is no automatic fallback to Neuramine's cloud infrastructure when your BYOG device goes offline. If your machine is unreachable, your workspace remains offline until the agent reconnects.
+</Note>
+
+## Using multiple devices
+
+You can register more than one machine under a single Neuramine account. Each device has its own device token and connects to one workspace at a time. To reassign a device to a different workspace:
+
+1. Open the workspace you want the device to join
+2. Go to **Settings → BYOG Device**
+3. Select the device from the **Registered Devices** list and click **Assign**
+
+The agent on that machine picks up the new workspace assignment automatically within one heartbeat cycle (30 seconds) — no restart required.

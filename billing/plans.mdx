@@ -1,0 +1,144 @@
+---
+title: "Neuramine Plans: Free, Starter, Max & Enterprise"
+sidebarTitle: "Plans"
+description: "Compare every Neuramine plan — Free Forever, Starter, Max, and Enterprise — and learn how to upgrade, downgrade, and use your trial credits."
+---
+
+Neuramine offers four plans so you can start for free and scale as your AI usage grows. Every plan includes the core chat interface, an OpenAI-compatible API, and BYOG (Bring Your Own GPU) support. Paid plans unlock cloud GPU workspaces, larger context windows, custom model uploads, and more.
+
+## Plan overview
+
+<CardGroup cols={4}>
+  <Card title="Free Forever" icon="circle" href="#whats-included-on-each-plan">
+    **$0 / month**
+
+    One workspace, one BYOG device. Perfect for personal experimentation on your own hardware — no credit card required and no GPU billing ever.
+  </Card>
+  <Card title="Starter" icon="bolt" href="#whats-included-on-each-plan">
+    **$19 / month**
+
+    Three workspaces, three BYOG devices, cloud GPU access, 10 GB of custom model uploads, and $10 in trial credits to get started.
+  </Card>
+  <Card title="Max" icon="rocket" href="#whats-included-on-each-plan">
+    **$99 / month**
+
+    Ten workspaces, ten BYOG devices, 128 k-token context, 50 GB of custom model uploads, priority support, and $10 in trial credits.
+  </Card>
+  <Card title="Enterprise" icon="building" href="/billing/enterprise">
+    **Custom pricing**
+
+    Unlimited workspaces and devices, dedicated GPU, SSO/SAML, HIPAA BAA, PIPEDA compliance, and a custom SLA. [Contact us](mailto:hello@neuramine.ai) to discuss.
+  </Card>
+</CardGroup>
+
+## Full feature comparison
+
+| Feature | Free Forever | Starter | Max | Enterprise |
+|---|---|---|---|---|
+| **Price** | $0 | $19 / mo | $99 / mo | Custom |
+| **Workspaces** | 1 | 3 | 10 | Unlimited |
+| **BYOG devices** | 1 | 3 | 10 | Unlimited |
+| **Cloud GPU access** | — | ✓ | ✓ | ✓ Dedicated |
+| **Custom model uploads** | — | Up to 10 GB | Up to 50 GB | Custom |
+| **Max context (tokens)** | 2,048 | 32,768 | 128,000 | Custom |
+| **RAG chunks per request** | 2 | 5 | 10 | Unlimited |
+| **Memories injected** | 3 | 10 | 20 | Unlimited |
+| **History sync** | — | ✓ | ✓ | ✓ |
+| **Priority support** | — | — | ✓ | ✓ |
+| **SSO / Team management** | — | — | — | ✓ |
+| **HIPAA BAA / DPA** | — | — | — | ✓ |
+| **Trial credits** | — | $10 | $10 | — |
+
+## What's included on each plan
+
+<Tabs>
+  <Tab title="Free Forever">
+    The Free Forever plan is designed for developers and hobbyists who want to run private AI on their own hardware at zero cost.
+
+    - **1 workspace** — one model, one GPU source, one knowledge base, one API key
+    - **1 BYOG device** — connect your own machine via the Neuramine Docker agent
+    - **CPU inference** — run models with llama.cpp; no GPU required
+    - **2,048-token context** — suitable for concise, focused conversations
+    - **2 RAG chunks per request** — lightweight document-grounded answers
+    - **3 memories injected** — basic long-term memory per workspace
+    - **No credit card required** — you are never charged for GPU time on the Free plan
+
+    <Note>
+      The Free plan is BYOG only. Cloud GPU workspaces are not available until you upgrade to Starter or higher.
+    </Note>
+  </Tab>
+  <Tab title="Starter">
+    Starter is built for individual power users who need multiple machines or want to experiment with cloud GPU without a large commitment.
+
+    - **3 workspaces** and **3 BYOG devices**
+    - **Cloud GPU access** — spin up serverless cloud GPU that scales to zero when idle
+    - **Custom model uploads up to 10 GB** — host your own fine-tuned or quantised models
+    - **32,768-token context** — handle longer documents and multi-turn conversations
+    - **5 RAG chunks per request** and **10 memories injected**
+    - **History sync** — conversation history synced across devices
+    - **$10 in trial credits** — credited once to your account on activation
+
+    <Tip>
+      Use your $10 trial credits to run a few cloud GPU inference sessions before topping up. Credits cover both the $0.002 flat API fee and any GPU time used.
+    </Tip>
+  </Tab>
+  <Tab title="Max">
+    Max is for professionals, researchers, and small teams who need maximum context, larger model files, and guaranteed support response times.
+
+    - **10 workspaces** and **10 BYOG devices**
+    - **Cloud GPU access** — same serverless cloud GPU access as Starter
+    - **Custom model uploads up to 50 GB** — host large 70B+ quantised models
+    - **128,000-token context** — full long-document analysis and extended agentic loops
+    - **10 RAG chunks per request** and **20 memories injected**
+    - **History sync** and **priority support**
+    - **$10 in trial credits** — credited once to your account on activation
+  </Tab>
+  <Tab title="Enterprise">
+    Enterprise is for organisations that require compliance, team management, and infrastructure guarantees. See the [Enterprise page](/billing/enterprise) for the full feature list and how to get started.
+
+    - **Unlimited workspaces and BYOG devices**
+    - **Dedicated GPU instances** — no shared tenancy, predictable performance
+    - **Custom context window** and **unlimited RAG chunks and memories**
+    - **SSO / SAML** and full team management
+    - **HIPAA BAA and PIPEDA** compliance documentation
+    - **Custom SLA**, custom model hosting, and a dedicated account manager
+  </Tab>
+</Tabs>
+
+## Trial credits
+
+When you activate a Starter or Max plan for the first time, Neuramine adds **$10 in trial credits** to your account. Use these credits for any inference — cloud GPU time, flat API fees, or both.
+
+<Info>
+  Trial credits are granted **once per account lifetime**. They survive plan switches (for example, upgrading from Starter to Max), but are forfeited if you cancel your subscription and later resubscribe.
+</Info>
+
+## Upgrading your plan
+
+<Steps>
+  <Step title="Open Billing settings">
+    Go to **Settings → Billing** in the Neuramine dashboard.
+  </Step>
+  <Step title="Choose a new plan">
+    Select the plan you want to upgrade to and click **Upgrade**.
+  </Step>
+  <Step title="Confirm and pay">
+    Review the prorated charge for the remainder of your current billing period and confirm. Your upgrade takes effect **immediately** — new workspace slots and feature limits apply right away.
+  </Step>
+</Steps>
+
+<Note>
+  If you are upgrading from Starter to Max during a trial period, no charge is applied today. The full $99 Max price is billed when your trial ends.
+</Note>
+
+## Downgrading your plan
+
+Downgrades are scheduled, not immediate. When you request a downgrade:
+
+- Your current plan's features remain active until the **end of your billing period**.
+- On the effective date, any workspaces above the new plan's limit are **suspended** (not deleted). Suspended workspaces retain their data; reactivate them by upgrading again or deleting workspaces to stay within the new limit.
+- No partial refunds are issued for unused days on the higher plan.
+
+<Warning>
+  Before downgrading to Free Forever, make sure you have no more than one GPU-backed workspace you want to keep. The downgrade flow will ask you to select which workspaces to retain.
+</Warning>

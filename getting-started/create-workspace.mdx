@@ -1,0 +1,71 @@
+---
+title: "Create a Neuramine AI Workspace — Step-by-Step Guide"
+sidebarTitle: "Create Workspace"
+description: "Create a Neuramine workspace, pick your model, and connect your device. Each workspace has its own API key, model, and isolated conversation history."
+---
+
+A workspace is the core unit in Neuramine. Each workspace combines one model, one device, a system prompt, a knowledge base, and a unique API key into a single named environment. You can create separate workspaces for different use cases — one for coding assistance, one for voice conversations, one for document Q&A — and switch between them instantly.
+
+## Create your first workspace
+
+<Steps>
+  <Step title="Open the dashboard">
+    Sign in at [cloud.neuramine.ai](https://cloud.neuramine.ai). From the main dashboard, click **New Workspace** in the top-right corner.
+  </Step>
+
+  <Step title="Name your workspace">
+    Enter a descriptive name that reflects the workspace's purpose. Examples: `Home GPU`, `Work Assistant`, `Voice Chat`, `Code Review`. A clear name makes it easier to manage multiple workspaces later.
+  </Step>
+
+  <Step title="Choose a model">
+    Browse the model registry and select the model you want to run. The registry includes LLMs (text generation), STT models (speech-to-text), and TTS models (text-to-speech).
+
+    <Tip>
+      Not sure which model to start with? Choose `unsloth/Qwen3.5-4B-GGUF` — it runs well on both CPU and GPU, loads quickly, and handles a broad range of tasks. You can change the model in **Settings → Model** at any time.
+    </Tip>
+  </Step>
+
+  <Step title="Connect your device">
+    After the workspace is created, go to **Settings → Devices → Add Device** to get your device token. Download the Neuramine agent for your platform and start it with that token.
+
+    Your workspace status changes to **online** once the agent connects and finishes loading the model. See [Download the Agent](/byog/download-agent) for full installation instructions.
+  </Step>
+</Steps>
+
+## Workspace statuses
+
+After creating a workspace, monitor its status in the dashboard to understand what's happening on your device.
+
+| Status | Meaning |
+|--------|---------|
+| `online` | The workspace is active and ready to accept messages or API calls. |
+| `starting` | The agent is connected and the model is loading. This usually takes 10–60 seconds depending on model size. |
+| `offline` | The device running the agent has stopped or lost its network connection. |
+| `waiting_for_device` | The workspace was created but no agent has connected with the matching device token yet. |
+| `error` | Something went wrong during model loading or inference. Check the agent terminal output for details. |
+
+<Warning>
+  If your workspace shows `error`, the most common cause is insufficient VRAM for the selected model. Try a smaller model (e.g., a 4B GGUF instead of an 8B) or switch to CPU mode.
+</Warning>
+
+## Manage your workspace
+
+Once your workspace is online, you can customise it from the **Settings** panel inside the workspace:
+
+- **Model** — swap the model without losing your conversation history.
+- **System Prompt** — set a custom persona, tone, or set of instructions for the assistant.
+- **Knowledge Base** — upload documents for retrieval-augmented generation (RAG).
+- **API Keys** — view or regenerate your workspace API key (`nrm_sk_{workspace_id}_{32_chars}`).
+- **Members** — invite team members to share the workspace (Starter and above).
+
+<Note>
+  Each workspace is fully isolated — separate conversation history, separate API key, separate knowledge base, and a separate encryption key. Deleting a workspace permanently removes all associated data.
+</Note>
+
+## Next step
+
+With your workspace online, send your first message through the chat UI or call the API directly.
+
+<Card title="Quick Start Guide" icon="rocket" href="/quickstart">
+  See a full end-to-end walkthrough including code examples for Python and Node.js.
+</Card>

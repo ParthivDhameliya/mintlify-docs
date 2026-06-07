@@ -1,0 +1,148 @@
+---
+title: "Text-to-Speech Models: Kokoro, XTTS v2, Piper & Sarvam"
+sidebarTitle: "Text-to-Speech"
+description: "Generate natural-sounding speech on your own hardware using Kokoro, XTTS v2, Piper, or Sarvam via a drop-in OpenAI-compatible TTS API."
+---
+
+Neuramine's text-to-speech pipeline converts written text to speech audio entirely on your own hardware using an OpenAI-compatible API. Applications built for OpenAI's TTS endpoint work with Neuramine without modification. Four TTS engines are available — from the ultra-lightweight Piper that runs on the most constrained hardware to XTTS v2 for high-quality voice cloning — so you can match audio quality to your hardware budget.
+
+## Available TTS models
+
+| Model ID | Name | Min RAM | Notes |
+|---|---|---|---|
+| `kokoro-82m` | Kokoro 82M | 2 GB | Fast, natural-sounding; best default choice |
+| `xtts-v2` | XTTS v2 | 8 GB | High quality; supports voice cloning from a short audio sample |
+| `piper` | Piper TTS | < 1 GB | Extremely lightweight; ideal for embedded or very low-memory hardware |
+| `sarvam` | Sarvam | 4 GB | Purpose-built for Indian languages; natural prosody for Hindi and regional languages |
+
+<Tip>
+  Use `kokoro-82m` as your starting point — it delivers natural speech at only 2 GB RAM and runs comfortably on virtually any machine. Switch to `xtts-v2` when you need higher fidelity or voice cloning.
+</Tip>
+
+## Voice options
+
+Each TTS model exposes a different set of voices. Pass the `voice` parameter in your API request to select one.
+
+<Tabs>
+  <Tab title="Kokoro 82M">
+    Kokoro ships with a set of built-in voices covering different genders and speaking styles. Available voices include `af_heart`, `af_bella`, `am_adam`, `am_michael`, `bf_emma`, `bm_george`, and others. Use `default` to let Neuramine pick the standard voice.
+  </Tab>
+  <Tab title="XTTS v2">
+    XTTS v2 supports both built-in voices and **zero-shot voice cloning**. To clone a custom voice, provide a short reference audio clip (3–30 seconds) alongside your text. Built-in voices follow the same naming convention as Kokoro.
+
+    <Note>
+      Voice cloning requires a clean reference recording with minimal background noise. Short clips with a single speaker produce the best results.
+    </Note>
+  </Tab>
+  <Tab title="Piper TTS">
+    Piper uses per-language ONNX voice models. Voices are referenced by their language and quality tag, such as `en_US-lessac-medium`. See the Piper voice library for the full list of available languages and speakers.
+  </Tab>
+  <Tab title="Sarvam">
+    Sarvam provides voices optimised for Hindi and other Indian languages. Specify the target language code alongside the voice name. Supported languages include Hindi, Bengali, Tamil, Telugu, Kannada, Malayalam, and Marathi.
+  </Tab>
+</Tabs>
+
+## Inference backend
+
+Each TTS model has a dedicated inference engine matched to its architecture:
+
+| Model | Inference engine |
+|---|---|
+| Kokoro 82M | Kokoro |
+| XTTS v2 | XTTS v2 |
+| Piper TTS | Piper |
+| Sarvam | Sarvam |
+
+All engines run on CPU by default. When an NVIDIA GPU is available, Kokoro and XTTS v2 offload computation to the GPU for faster generation. Piper is CPU-only and does not benefit from GPU acceleration.
+
+## Configuring TTS in a workspace
+
+<Steps>
+  <Step title="Open workspace settings">
+    Navigate to your workspace and click **Settings → Text-to-Speech**.
+  </Step>
+  <Step title="Enable TTS">
+    Toggle **Enable text-to-speech** on. TTS is disabled by default to keep resource usage low.
+  </Step>
+  <Step title="Select a model and voice">
+    Choose a TTS model from the dropdown, then pick a voice from the voice selector that appears. If you are unsure, select `kokoro-82m` and `default`.
+  </Step>
+  <Step title="Save">
+    Click **Save**. Neuramine downloads the TTS model to `~/.neuramine/models/` if it is not already cached and starts the TTS process. You can test playback directly from the settings panel using the **Preview voice** button.
+  </Step>
+</Steps>
+
+## Speech API
+
+The `/v1/audio/speech` endpoint is a drop-in replacement for the OpenAI TTS API.
+
+```bash
+curl https://api.neuramine.ai/v1/audio/speech \
+  -H 'Authorization: Bearer nrm_sk_...' \
+  -H 'Content-Type: application/json' \
+  -d '{"model": "kokoro-82m", "input": "Hello world", "voice": "default"}' \
+  --output speech.mp3
+```
+
+**Request body parameters:**
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `model` | string | Yes | TTS model ID (e.g. `kokoro-82m`, `xtts-v2`, `piper`, `sarvam`) |
+| `input` | string | Yes | The text to synthesise. Maximum 4,096 characters per request. |
+| `voice` | string | Yes | Voice name. Use `default` to use the model's default voice. |
+| `response_format` | string | No | Output format: `mp3` (default), `opus`, `aac`, or `wav`. |
+| `speed` | number | No | Playback speed multiplier from `0.25` to `4.0`. Defaults to `1.0`. |
+
+The response is a binary audio stream in the requested format. Pipe it directly to a file or a media player.
+
+<Warning>
+  Text inputs longer than 4,096 characters are rejected with a 400 error. Split long documents into paragraphs and make multiple requests, then concatenate the output files.
+</Warning>
+
+<CodeGroup>
+```python Python
+import requests
+
+response = requests.post(
+    "https://api.neuramine.ai/v1/audio/speech",
+    headers={
+        "Authorization": "Bearer nrm_sk_...",
+        "Content-Type": "application/json",
+    },
+    json={
+        "model": "kokoro-82m",
+        "input": "Welcome to Neuramine. Your private AI platform.",
+        "voice": "default",
+    },
+)
+
+with open("speech.mp3", "wb") as f:
+    f.write(response.content)
+```
+
+```javascript Node.js
+import fs from "fs";
+import fetch from "node-fetch";
+
+const res = await fetch("https://api.neuramine.ai/v1/audio/speech", {
+  method: "POST",
+  headers: {
+    Authorization: "Bearer nrm_sk_...",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    model: "kokoro-82m",
+    input: "Welcome to Neuramine. Your private AI platform.",
+    voice: "default",
+  }),
+});
+
+const buffer = await res.arrayBuffer();
+fs.writeFileSync("speech.mp3", Buffer.from(buffer));
+```
+</CodeGroup>
+
+<Info>
+  The TTS API is synchronous — the audio stream is returned in the HTTP response body. For long inputs, response time scales linearly with text length. Consider streaming the response if you need to start playback before generation completes; the endpoint supports chunked transfer encoding.
+</Info>

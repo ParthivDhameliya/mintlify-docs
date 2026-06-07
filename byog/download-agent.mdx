@@ -1,0 +1,141 @@
+---
+title: "Download the Neuramine Agent: Install and First Run"
+sidebarTitle: "Download Agent"
+description: "Download the Neuramine agent binary for your platform, run it for the first time, and optionally register it as a background service."
+---
+
+The Neuramine agent is a single self-contained executable. There is no installer, no Docker daemon, no Python environment, and no system dependencies to manage. Download the binary for your platform, make it executable if you are on macOS or Linux, and run it.
+
+## Download links
+
+You can download the agent directly from the dashboard at **Workspace Settings → BYOG Device → Download Agent**, or use the direct links below.
+
+| Platform | Architecture | Download |
+|----------|-------------|---------|
+| Windows | x64 | [NeuramineAgent-windows-x64.exe](https://cloud.neuramine.ai/agent/download/windows) |
+| macOS | Apple Silicon (arm64) | [NeuramineAgent-macos-arm64](https://cloud.neuramine.ai/agent/download/macos) |
+| Linux | x64 | [NeuramineAgent-linux-x64](https://cloud.neuramine.ai/agent/download/linux) |
+
+## First run
+
+After downloading, open a terminal (or PowerShell on Windows) in the folder where you saved the binary and run the appropriate command for your platform.
+
+<CodeGroup>
+
+```bash macOS / Linux
+# Make the binary executable
+chmod +x NeuramineAgent-macos-arm64   # replace with NeuramineAgent-linux-x64 on Linux
+
+# Run the agent
+./NeuramineAgent-macos-arm64
+```
+
+```powershell Windows
+# Run directly — no chmod needed
+.\NeuramineAgent-windows-x64.exe
+```
+
+</CodeGroup>
+
+### What happens on first run
+
+<Steps>
+  <Step title="Agent prompts for your device token">
+    The agent prints a prompt asking for your device token. Paste the token you generated in the Neuramine dashboard (see [Connect Your Device](/byog/connect-device) for instructions):
+
+    ```
+    Enter your device token: nt_xxxxxxxxxxxxxxxxxxxx
+    ```
+  </Step>
+  <Step title="Token is saved locally">
+    The agent writes the token to a local config file. You will not be prompted again on future starts — the agent loads the token automatically.
+  </Step>
+  <Step title="Agent registers with Neuramine Cloud">
+    The agent authenticates with `wss://agent.neuramine.io` and your device appears in the dashboard under **Settings → BYOG Device**.
+  </Step>
+  <Step title="Model download begins">
+    The workspace-configured model starts downloading to `~/.neuramine/models/`. A progress bar shows the current status:
+
+    ```
+    [ModelManager] Downloading unsloth/Qwen3.5-4B-GGUF...
+    [ModelManager] 45.2% (2,041 MB / 4,520 MB)
+    ```
+
+    Models are cached after the first download — subsequent starts skip this step entirely.
+  </Step>
+  <Step title="Inference server starts on port 8080">
+    Once the model loads, the agent starts the local inference server. Your workspace status changes to **Online** in the dashboard and you can begin chatting.
+  </Step>
+</Steps>
+
+<Note>
+  **macOS Gatekeeper:** macOS may block the binary the first time you run it, showing a message that the developer cannot be verified. To allow it, open **System Settings → Privacy & Security**, scroll to the Security section, and click **Allow Anyway** next to the Neuramine agent entry. Then re-run the binary.
+</Note>
+
+## Running as a background service
+
+By default the agent runs in the foreground and stops when you close the terminal. To keep it running persistently, register it as a system service.
+
+<CodeGroup>
+
+```bash macOS (launchd)
+# Create the Launch Agent plist
+cat > ~/Library/LaunchAgents/ai.neuramine.agent.plist << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>ai.neuramine.agent</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/path/to/NeuramineAgent-macos-arm64</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/neuramine-agent.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/neuramine-agent.log</string>
+</dict>
+</plist>
+EOF
+
+# Load the service (starts immediately and on every login)
+launchctl load ~/Library/LaunchAgents/ai.neuramine.agent.plist
+```
+
+```bash Linux (systemd)
+# Create the service unit file
+sudo tee /etc/systemd/system/neuramine-agent.service << EOF
+[Unit]
+Description=Neuramine BYOG Agent
+After=network.target
+
+[Service]
+ExecStart=/path/to/NeuramineAgent-linux-x64
+Restart=always
+RestartSec=5
+User=$USER
+Environment=HOME=$HOME
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Enable and start the service
+sudo systemctl daemon-reload
+sudo systemctl enable --now neuramine-agent
+
+# Check status
+sudo systemctl status neuramine-agent
+```
+
+</CodeGroup>
+
+<Tip>
+  Replace `/path/to/NeuramineAgent-*` with the actual absolute path to wherever you saved the binary — for example `/home/alice/bin/NeuramineAgent-linux-x64`.
+</Tip>

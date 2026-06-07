@@ -1,0 +1,108 @@
+---
+title: "Neuramine Model Registry: Browse LLM, STT & TTS Models"
+sidebarTitle: "Overview"
+description: "Browse every model Neuramine supports, understand how the registry works, and pick the right model for your hardware and use case."
+---
+
+Neuramine ships a curated registry of language, speech-to-text, and text-to-speech models that run entirely on your own hardware — nothing ever leaves your machine. Every model in the catalogue is available on all plans; the only variable is which ones your hardware can comfortably run. When you create or edit a workspace, Neuramine lets you choose a model manually or use the built-in recommendation tool to find the best fit for your system.
+
+## Three model types
+
+<CardGroup cols={3}>
+  <Card title="Language Models (LLM)" icon="brain" href="/models/llm">
+    Run open-weight instruction-following models — from compact 1 B parameter models on a 4 GB laptop to 70 B parameter models on high-memory servers. Powers the chat interface and the `/v1/chat/completions` endpoint.
+  </Card>
+  <Card title="Speech-to-Text (STT)" icon="microphone" href="/models/stt">
+    Transcribe audio with OpenAI Whisper-compatible models and the Indic Conformer model for 20 Indian languages. Backed by faster-whisper for low-latency, CPU-friendly inference.
+  </Card>
+  <Card title="Text-to-Speech (TTS)" icon="volume-high" href="/models/tts">
+    Generate natural-sounding speech with Kokoro, XTTS v2, Piper, or Sarvam. The `/v1/audio/speech` endpoint is a drop-in replacement for the OpenAI TTS API.
+  </Card>
+</CardGroup>
+
+## How the model registry works
+
+When you select a model in a workspace, Neuramine downloads it from the registry to `~/.neuramine/models/` on your machine the first time it is used. Subsequent runs load the cached copy — no repeated downloads. The registry stores models in two formats:
+
+- **GGUF** — a single quantized file optimised for llama.cpp on CPU and Apple Silicon.
+- **ZIP** — a multi-file bundle (safetensors + config) used by vLLM on NVIDIA GPUs.
+
+<Note>
+  Model files can be several gigabytes. Make sure you have sufficient free disk space at `~/.neuramine/models/` before loading a large model for the first time.
+</Note>
+
+## Selecting a model in a workspace
+
+<Steps>
+  <Step title="Open workspace settings">
+    Navigate to your workspace and click **Settings → Model**. You can also choose a model during the initial workspace creation wizard.
+  </Step>
+  <Step title="Choose your model type">
+    Select **Language Model**, **Speech-to-Text**, or **Text-to-Speech** from the model-type tabs.
+  </Step>
+  <Step title="Pick a model or use the recommendation tool">
+    Either select a specific model from the dropdown, or click **Recommend for my hardware** to let Neuramine suggest the best option automatically (see below).
+  </Step>
+  <Step title="Save and apply">
+    Click **Save**. Neuramine pulls the model file in the background if it is not already cached, then restarts inference. The workspace status indicator turns green when the model is ready.
+  </Step>
+</Steps>
+
+## Hardware-aware recommendation tool
+
+The recommendation tool analyses your hardware profile and returns the best LLM, STT, and TTS model for your machine. Call it directly from the workspace settings UI, or from the API:
+
+```bash
+curl https://api.neuramine.ai/v1/models/recommend \
+  -H 'Authorization: Bearer nrm_sk_...' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "cpu_type": "apple_silicon",
+    "ram_gb": 16,
+    "has_nvidia_gpu": false
+  }'
+```
+
+The `cpu_type` field accepts one of four values:
+
+| Value | Description |
+|---|---|
+| `apple_silicon` | Apple M1, M2, M3, or M4 chip (unified memory) |
+| `modern_cpu` | x86-64 with AVX2 support (post-2015 Intel/AMD) |
+| `standard_cpu` | Older x86-64 without AVX2 |
+| `low_end_cpu` | Low-power or embedded CPU |
+
+<Tip>
+  If you have an NVIDIA GPU, the recommendation endpoint suggests upgrading to the Starter plan to unlock BYOG so you can take full advantage of vLLM's 30–50% speed improvement over CPU inference.
+</Tip>
+
+## Custom model uploads
+
+You can upload your own fine-tuned or privately hosted models to Neuramine. Upload limits depend on your plan:
+
+| Plan | Max upload size |
+|---|---|
+| Free Forever | Not available |
+| Starter | 10 GB per model |
+| Max | 50 GB per model |
+| Enterprise | Custom |
+
+Both GGUF single-file models and ZIP archives (multi-file safetensors) are accepted. Once uploaded, your custom model appears in the model dropdown for any workspace on your account — it is private to your account and never shared.
+
+<Warning>
+  Uploading a model in an unsupported format or with a mismatched config file will cause the workspace to fail to start. Always test a custom model on your local machine before uploading.
+</Warning>
+
+## Model caching
+
+Downloaded models are stored at `~/.neuramine/models/` and reused across all workspaces. You can inspect the cache directory at any time:
+
+```bash
+ls -lh ~/.neuramine/models/
+```
+
+To free disk space, delete unused model files from that directory. Neuramine will re-download the file on the next inference request.
+
+<Info>
+  Neuramine never deletes cached models automatically. Run periodic cache cleanups if you experiment with many large models.
+</Info>

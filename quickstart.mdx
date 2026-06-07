@@ -1,0 +1,132 @@
+---
+title: "Neuramine Quickstart: Run Your First Private AI Model"
+sidebarTitle: "Quickstart"
+description: "Sign up, create a workspace, connect your GPU, and send your first message — via the chat UI or the OpenAI-compatible API — in under five minutes."
+---
+
+This guide takes you from a brand-new account to a running AI workspace in five steps. You need a machine with a GPU (NVIDIA with 8 GB+ VRAM recommended) or a CPU-only machine if you want to start without a GPU.
+
+<Steps>
+  <Step title="Sign up at cloud.neuramine.ai">
+    Go to [cloud.neuramine.ai](https://cloud.neuramine.ai) and create a free account. Choose either:
+
+    - **Continue with Google** — signs you in instantly via OAuth.
+    - **Magic link** — enter your email address and click the link we send you. No password required.
+
+    The Free Forever plan is active immediately. No credit card needed.
+  </Step>
+
+  <Step title="Create a workspace">
+    From the dashboard, click **New Workspace** in the top-right corner.
+
+    1. Enter a descriptive name (e.g., `Home GPU` or `Coding Assistant`).
+    2. Select a model from the registry. If you're unsure, start with `unsloth/Qwen3.5-4B-GGUF` — it runs well on CPU and is a solid all-rounder.
+    3. Click **Create Workspace**.
+
+    Your workspace is created with a unique API key in the format `nrm_sk_{workspace_id}_{32_chars}`. Copy this key from **Settings → API Keys** — you'll need it in Step 5.
+
+    <Note>
+      Your workspace will show the status **waiting_for_device** until you connect a machine in the next step.
+    </Note>
+  </Step>
+
+  <Step title="Download and install the agent">
+    Download the Neuramine agent for your platform from **Settings → Devices → Add Device** inside your workspace. The agent is a single executable — no Docker or additional runtime required.
+
+    <Tabs>
+      <Tab title="Linux (NVIDIA GPU)">
+        ```bash
+        # Make the agent executable and start it with your device token
+        chmod +x neuramine-agent-linux
+        NEURAMINE_TOKEN=nrm_device_your_token_here ./neuramine-agent-linux
+        ```
+
+        Replace `nrm_device_your_token_here` with the device token shown in your dashboard. The agent runs in the foreground by default; use a process manager like `systemd` or `screen` to keep it running in the background.
+      </Tab>
+      <Tab title="macOS (Apple Silicon)">
+        ```bash
+        chmod +x neuramine-agent-macos
+        NEURAMINE_TOKEN=nrm_device_your_token_here ./neuramine-agent-macos
+        ```
+
+        The agent automatically uses llama.cpp with Metal GPU acceleration on Apple Silicon — no additional setup needed.
+      </Tab>
+      <Tab title="Windows">
+        Open PowerShell, navigate to the folder where you downloaded the agent, and run:
+
+        ```powershell
+        $env:NEURAMINE_TOKEN="nrm_device_your_token_here"
+        .\neuramine-agent-windows.exe
+        ```
+      </Tab>
+    </Tabs>
+
+    <Tip>
+      The agent connects outbound only over HTTPS (port 443). You don't need to open any inbound firewall ports or configure port forwarding.
+    </Tip>
+  </Step>
+
+  <Step title="Connect your device">
+    After starting the agent with your device token, return to the dashboard. Your workspace status changes from **waiting_for_device** to **starting** as the model loads, then to **online** when it's ready — typically within 30 seconds.
+
+    If the status stays on **waiting_for_device** for more than a minute, check that the `NEURAMINE_TOKEN` value you passed to the agent matches the device token shown in **Settings → Devices**.
+  </Step>
+
+  <Step title="Send your first message">
+    Once your workspace shows **online**, you can chat immediately.
+
+    **Option A — Chat UI:** Click **Open Chat** in your workspace to open the browser-based chat interface. Type a message and press Enter.
+
+    **Option B — API:** Use the OpenAI-compatible API with the base URL `https://api.neuramine.ai/v1/` and your workspace API key.
+
+    <CodeGroup>
+      ```python Python
+      from openai import OpenAI
+
+      client = OpenAI(
+          base_url="https://api.neuramine.ai/v1/",
+          api_key="nrm_sk_your_workspace_key_here"
+      )
+
+      response = client.chat.completions.create(
+          model="llama-3.1-8b",
+          messages=[{"role": "user", "content": "Hello!"}]
+      )
+      print(response.choices[0].message.content)
+      ```
+
+      ```javascript Node.js
+      import OpenAI from 'openai';
+
+      const client = new OpenAI({
+        baseURL: 'https://api.neuramine.ai/v1/',
+        apiKey: 'nrm_sk_your_workspace_key_here'
+      });
+
+      const response = await client.chat.completions.create({
+        model: 'llama-3.1-8b',
+        messages: [{ role: 'user', content: 'Hello!' }]
+      });
+      console.log(response.choices[0].message.content);
+      ```
+    </CodeGroup>
+
+    <Note>
+      Replace `nrm_sk_your_workspace_key_here` with your actual workspace API key and `llama-3.1-8b` with the model name you selected when creating the workspace.
+    </Note>
+  </Step>
+</Steps>
+
+## What's next
+
+<CardGroup cols={3}>
+  <Card title="BYOG Overview" icon="microchip" href="/byog/overview">
+    Learn more about the agent architecture, hardware requirements, and advanced configuration.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/overview">
+    Explore all available endpoints, including STT and TTS.
+  </Card>
+  <Card title="Models" icon="database" href="/models/overview">
+    Browse the full model registry to find the best LLM for your use case.
+  </Card>
+</CardGroup>

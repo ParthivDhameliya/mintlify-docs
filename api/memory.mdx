@@ -1,0 +1,221 @@
+---
+title: "Memory — Inspect and Delete Workspace Memory Facts"
+sidebarTitle: "Memory"
+description: "List the long-term facts Neuramine has learned about your workspace users, and delete individual memories that are no longer relevant."
+---
+
+Neuramine automatically extracts and stores long-term facts from each conversation using its built-in memory system. These memories are scoped to your workspace and injected into every chat completions request as a `THINGS YOU KNOW ABOUT THIS USER:` block inside the assembled system prompt — giving your AI persistent context without any manual prompt engineering on your part.
+
+Memory extraction happens asynchronously after each safe response. The memory endpoints let you inspect what has been learned and remove individual facts that are outdated or incorrect.
+
+<Note>
+  Memory injection is automatic. You do not need to retrieve or pass memories manually when calling `POST /v1/chat/completions` — the platform handles this for you on every request. The memory endpoints are provided for inspection and moderation only.
+</Note>
+
+## Authentication
+
+Both memory endpoints require your workspace API key as a Bearer token.
+
+```
+Authorization: Bearer nrm_sk_<workspace_id>_<32_chars>
+```
+
+---
+
+## List memories
+
+Returns all facts stored for the current workspace.
+
+### Endpoint
+
+```
+GET https://api.neuramine.ai/v1/memory
+```
+
+### Response
+
+<ResponseField name="object" type="string">
+  Always `"list"`.
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Array of memory objects.
+
+  <Expandable title="memory object">
+    <ResponseField name="id" type="string">
+      Unique identifier for this memory fact. Use this ID to delete the memory.
+    </ResponseField>
+    <ResponseField name="memory" type="string">
+      The extracted fact as a short natural-language statement (e.g. `"Prefers responses in bullet points"`).
+    </ResponseField>
+    <ResponseField name="created_at" type="string">
+      ISO 8601 timestamp of when this memory was extracted.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.neuramine.ai/v1/memory \
+  -H "Authorization: Bearer nrm_sk_YOUR_KEY"
+```
+
+```python Python
+import requests
+
+resp = requests.get(
+    "https://api.neuramine.ai/v1/memory",
+    headers={"Authorization": "Bearer nrm_sk_YOUR_KEY"},
+)
+for mem in resp.json()["data"]:
+    print(mem["id"], "—", mem["memory"])
+```
+
+```typescript Node.js
+const resp = await fetch("https://api.neuramine.ai/v1/memory", {
+  headers: { Authorization: "Bearer nrm_sk_YOUR_KEY" },
+});
+const { data } = await resp.json();
+data.forEach((mem) => console.log(mem.id, "—", mem.memory));
+```
+
+</CodeGroup>
+
+```json Example response
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "mem_01hwx3k9v2fj8qb5c6n7ry4z",
+      "memory": "Prefers concise responses in bullet points",
+      "created_at": "2024-11-14T09:32:17.000Z"
+    },
+    {
+      "id": "mem_02bpq7m4e9gs1ta0d3lf6uy8w",
+      "memory": "Works in the healthcare sector and focuses on patient documentation",
+      "created_at": "2024-11-15T14:08:44.000Z"
+    },
+    {
+      "id": "mem_03cwr5n6h1jt2ub4e7mg9vz0x",
+      "memory": "Uses Python for scripting automation tasks",
+      "created_at": "2024-11-16T11:55:02.000Z"
+    }
+  ]
+}
+```
+
+---
+
+## Delete a memory
+
+Permanently removes a single memory fact from the workspace. The next chat request will no longer include this fact in the system prompt.
+
+### Endpoint
+
+```
+DELETE https://api.neuramine.ai/v1/memory/{memory_id}
+```
+
+### Path parameters
+
+<ParamField path="memory_id" type="string" required>
+  The `id` of the memory to delete, as returned by `GET /v1/memory`.
+</ParamField>
+
+### Response
+
+<ResponseField name="deleted" type="boolean">
+  Always `true` on success.
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The ID of the deleted memory, echoed back for confirmation.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X DELETE \
+  https://api.neuramine.ai/v1/memory/mem_01hwx3k9v2fj8qb5c6n7ry4z \
+  -H "Authorization: Bearer nrm_sk_YOUR_KEY"
+```
+
+```python Python
+import requests
+
+memory_id = "mem_01hwx3k9v2fj8qb5c6n7ry4z"
+
+resp = requests.delete(
+    f"https://api.neuramine.ai/v1/memory/{memory_id}",
+    headers={"Authorization": "Bearer nrm_sk_YOUR_KEY"},
+)
+print(resp.json())  # {"deleted": true, "id": "mem_01hwx3k9v2fj8qb5c6n7ry4z"}
+```
+
+```typescript Node.js
+const memoryId = "mem_01hwx3k9v2fj8qb5c6n7ry4z";
+
+const resp = await fetch(
+  `https://api.neuramine.ai/v1/memory/${memoryId}`,
+  {
+    method: "DELETE",
+    headers: { Authorization: "Bearer nrm_sk_YOUR_KEY" },
+  }
+);
+console.log(await resp.json());
+// { deleted: true, id: "mem_01hwx3k9v2fj8qb5c6n7ry4z" }
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "deleted": true,
+  "id": "mem_01hwx3k9v2fj8qb5c6n7ry4z"
+}
+```
+
+### Error responses
+
+| HTTP status | Meaning |
+|---|---|
+| `404` | Memory ID not found in this workspace |
+| `401` | Missing or invalid API key |
+
+## How memories are injected
+
+When a user sends a message, the platform:
+
+<Steps>
+  <Step title="Retrieves memories">
+    Fetches the top-k most relevant memories for the user's message using semantic similarity search. The number of memories injected is tier-limited.
+
+    | Plan | Max memories injected per request |
+    |---|---|
+    | Free Forever | 3 |
+    | Starter | 10 |
+    | Max | 20 |
+  </Step>
+  <Step title="Appends to system prompt">
+    Injects the retrieved facts as a structured block inside the assembled system prompt, before your Layer 3 workspace prompt. The model receives context like:
+
+    ```
+    THINGS YOU KNOW ABOUT THIS USER:
+    - Prefers concise responses in bullet points
+    - Works in healthcare and focuses on patient documentation
+    - Uses Python for scripting automation tasks
+    ```
+  </Step>
+  <Step title="Extracts new memories">
+    After the response is delivered and validated, Neuramine memory analyses the exchange asynchronously and extracts any new facts worth remembering. Failures are silent — the user's response is never delayed.
+  </Step>
+</Steps>
+
+<Tip>
+  If the AI is behaving inconsistently because of an outdated memory, use `DELETE /v1/memory/{id}` to remove it. New interactions will overwrite outdated facts naturally over time.
+</Tip>

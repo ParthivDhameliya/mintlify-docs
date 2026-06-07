@@ -1,0 +1,98 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "Neuramine",
+  "theme": "luma",
+  "colors": {
+    "primary": "#6C47FF",
+    "light": "#EDE9FF",
+    "dark": "#3B1FA8"
+  },
+  "navbar": {
+    "primary": {
+      "type": "button",
+      "label": "Get Started",
+      "href": "https://cloud.neuramine.ai"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "getting-started/sign-up",
+              "getting-started/create-workspace"
+            ]
+          },
+          {
+            "group": "BYOG",
+            "pages": [
+              "byog/overview",
+              "byog/download-agent",
+              "byog/connect-device",
+              "byog/device-tokens",
+              "byog/supported-hardware"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/chat",
+              "features/documents",
+              "features/voice",
+              "features/memory",
+              "features/workspaces"
+            ]
+          },
+          {
+            "group": "Models",
+            "pages": [
+              "models/overview",
+              "models/llm",
+              "models/stt",
+              "models/tts"
+            ]
+          },
+          {
+            "group": "Billing & Plans",
+            "pages": [
+              "billing/plans",
+              "billing/credits",
+              "billing/enterprise"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/overview",
+              "api/authentication"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/chat-completions",
+              "api/audio",
+              "api/models",
+              "api/memory",
+              "api/documents",
+              "api/workspaces"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "footer": {
+    "socials": {}
+  }
+}

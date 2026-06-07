@@ -1,0 +1,145 @@
+---
+title: "Speech-to-Text Models: Whisper & Indic Conformer Guide"
+sidebarTitle: "Speech-to-Text"
+description: "Transcribe audio privately on your own hardware using Whisper-compatible STT models with support for 99 languages and 20 Indian languages."
+---
+
+Neuramine's speech-to-text pipeline runs entirely on your hardware and exposes an OpenAI Whisper-compatible API — so any application that already sends audio to OpenAI transcriptions will work with Neuramine without changing a line of code. Under the hood, Neuramine uses **faster-whisper**, a highly optimised reimplementation of Whisper that reduces memory usage and latency compared to the original library, while producing identical transcription results.
+
+## Available STT models
+
+| Model ID | Name | Min RAM | Best for |
+|---|---|---|---|
+| `whisper-small` | Whisper Small | 4 GB | Fast transcription on low-memory hardware |
+| `distil-whisper` | Distil-Whisper | 8 GB | Balanced accuracy and speed |
+| `whisper-large-v3` | Whisper Large v3 | 10 GB | Highest accuracy across all 99 supported languages |
+| `ai4bharat/indic-conformer-600m-multilingual` | Indic Conformer 600M | 6 GB | 20 Indian languages (see below) |
+
+<Tip>
+  Start with `whisper-small` if you are on constrained hardware or processing short audio clips. Upgrade to `whisper-large-v3` for production workloads or when working with accented speech, technical vocabulary, or noisy audio.
+</Tip>
+
+## Language support
+
+<Tabs>
+  <Tab title="Whisper (99 languages)">
+    All three Whisper models support **99 languages** including English, Spanish, French, German, Chinese, Japanese, Korean, Arabic, Hindi, and many more. The model automatically detects the spoken language — you do not need to specify it unless you want to force transcription to a particular language.
+
+    Pass the `language` parameter in your request to skip auto-detection and improve speed slightly:
+
+    ```bash
+    curl https://api.neuramine.ai/v1/audio/transcriptions \
+      -H 'Authorization: Bearer nrm_sk_...' \
+      -F 'file=@audio.mp3' \
+      -F 'model=whisper-large-v3' \
+      -F 'language=en'
+    ```
+  </Tab>
+  <Tab title="Indic Conformer (20 Indian languages)">
+    The `ai4bharat/indic-conformer-600m-multilingual` model is purpose-built for Indian languages and delivers significantly better accuracy on Indian speech than general-purpose Whisper models.
+
+    **Supported languages:** Assamese, Bengali, Bodo, Dogri, Gujarati, Hindi, Kannada, Kashmiri, Konkani, Maithili, Malayalam, Manipuri, Marathi, Nepali, Odia, Punjabi, Sanskrit, Tamil, Telugu, and Urdu.
+
+    <Note>
+      The Indic Conformer model uses a different internal architecture from Whisper and is not interchangeable. Specify its full model ID when calling the transcriptions endpoint.
+    </Note>
+  </Tab>
+</Tabs>
+
+## Inference backend
+
+All STT models run through **faster-whisper**, which uses CTranslate2 under the hood for efficient CPU and CUDA inference. Key characteristics:
+
+- **CPU** — faster-whisper runs comfortably on modern multi-core CPUs with no GPU required.
+- **NVIDIA GPU** — when a CUDA device is detected, faster-whisper automatically offloads computation to the GPU for near real-time transcription.
+- **Batched processing** — multiple audio files submitted concurrently are batched automatically for maximum throughput.
+
+STT and TTS models are lightweight relative to LLMs. On most hardware, you can run an LLM and a Whisper model in the same workspace without resource conflicts.
+
+## Configuring STT in a workspace
+
+<Steps>
+  <Step title="Open workspace settings">
+    Go to your workspace and click **Settings → Speech-to-Text**.
+  </Step>
+  <Step title="Enable STT">
+    Toggle **Enable speech-to-text** on. The setting is off by default to avoid unnecessary model downloads.
+  </Step>
+  <Step title="Choose a model">
+    Select a model from the dropdown. If you are unsure, start with `whisper-small` and switch to `whisper-large-v3` if accuracy is insufficient.
+  </Step>
+  <Step title="Save">
+    Click **Save**. Neuramine downloads the STT model to `~/.neuramine/models/` if not already cached, then starts the faster-whisper inference process in the background.
+  </Step>
+</Steps>
+
+## Transcriptions API
+
+The transcriptions endpoint follows the OpenAI Whisper API format exactly. Send a `multipart/form-data` request with the audio file and the model ID.
+
+**Request:**
+
+```bash
+curl https://api.neuramine.ai/v1/audio/transcriptions \
+  -H 'Authorization: Bearer nrm_sk_...' \
+  -F 'file=@audio.mp3' \
+  -F 'model=whisper-large-v3'
+```
+
+**Accepted audio formats:** MP3, MP4, MPEG, MPGA, M4A, WAV, WebM.
+
+**Optional parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `language` | string | ISO-639-1 language code (e.g. `en`, `hi`). Omit for auto-detection. |
+| `prompt` | string | Optional text to guide the model's style or provide context. |
+| `response_format` | string | `json` (default), `text`, `srt`, `verbose_json`, or `vtt`. |
+| `temperature` | number | Sampling temperature (0–1). Defaults to `0` for deterministic output. |
+
+**Example response:**
+
+```json
+{
+  "text": "The quick brown fox jumps over the lazy dog."
+}
+```
+
+<Warning>
+  Audio files larger than 25 MB must be split before submission. Use a tool like `ffmpeg` to cut long recordings into segments before sending them to the transcriptions endpoint.
+</Warning>
+
+<CodeGroup>
+```python Python
+import requests
+
+with open("audio.mp3", "rb") as f:
+    response = requests.post(
+        "https://api.neuramine.ai/v1/audio/transcriptions",
+        headers={"Authorization": "Bearer nrm_sk_..."},
+        files={"file": f},
+        data={"model": "whisper-large-v3"},
+    )
+
+print(response.json()["text"])
+```
+
+```javascript Node.js
+import fs from "fs";
+import FormData from "form-data";
+import fetch from "node-fetch";
+
+const form = new FormData();
+form.append("file", fs.createReadStream("audio.mp3"));
+form.append("model", "whisper-large-v3");
+
+const res = await fetch("https://api.neuramine.ai/v1/audio/transcriptions", {
+  method: "POST",
+  headers: { Authorization: "Bearer nrm_sk_...", ...form.getHeaders() },
+  body: form,
+});
+
+const { text } = await res.json();
+console.log(text);
+```
+</CodeGroup>

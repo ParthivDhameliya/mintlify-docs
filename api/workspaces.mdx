@@ -1,0 +1,464 @@
+---
+title: "Workspaces — Create, Configure, and Manage AI Workspaces"
+sidebarTitle: "Workspaces"
+description: "Create and manage workspaces — each bundles a model, GPU, API key, knowledge base, memory store, and system prompt into one isolated AI environment."
+---
+
+A workspace is the atomic unit of Neuramine. Each workspace bundles together a model, a GPU source, a system prompt, a private knowledge base, a memory store, a set of members, and a dedicated API key. Creating a workspace provisions a GPU endpoint (or registers your local machine for BYOG) and returns the API key you use for all inference calls.
+
+All workspace management endpoints authenticate via your **user session token** (JWT from Google OAuth or magic-link login), not a workspace API key. The `GET /v1/usage` endpoint is the exception — it authenticates via a workspace API key.
+
+<Warning>
+  **Deleting a workspace is irreversible.** Deletion purges all knowledge base vectors, stored documents, and conversation history for that workspace. Audit logs are retained for compliance (6-year HIPAA retention) but are not accessible to end users after deletion.
+</Warning>
+
+---
+
+## Create a workspace
+
+Provisions a new workspace. For serverless and dedicated GPU sources, this call also creates a cloud GPU endpoint and starts the model loading process. For BYOG/CPU sources, it generates a device token you register with the Neuramine Agent.
+
+### Endpoint
+
+```
+POST https://api.neuramine.ai/v1/workspaces
+```
+
+### Request
+
+<ParamField body="name" type="string" required>
+  A human-readable name for the workspace (e.g. `"Customer Support Bot"`).
+</ParamField>
+
+<ParamField body="model_id" type="string" required>
+  The model to deploy (e.g. `"llama-3.1-8b"`). Use [GET /v1/models](/api/models) for the full list. Serverless GPU has a 70B parameter ceiling per single GPU.
+</ParamField>
+
+<ParamField body="gpu_source" type="string" required>
+  How to run inference. One of:
+
+  | Value | Description |
+  |---|---|
+  | `"serverless"` | Managed cloud GPU that scales to zero when idle |
+  | `"byog"` | Bring Your Own GPU — runs on your hardware via the Neuramine Agent |
+  | `"cpu"` | CPU-only inference via llama.cpp — no GPU required, Free Forever |
+</ParamField>
+
+<ParamField body="vertical" type="string" default="general">
+  The industry vertical for this workspace. Controls Layer 2 compliance guardrails. One of: `"general"`, `"healthcare"`, `"finance"`, `"legal"`.
+</ParamField>
+
+<ParamField body="system_prompt" type="string">
+  Your Layer 3 workspace system prompt — the assistant's name, tone, and custom instructions. When omitted, a default prompt is generated from the workspace name and vertical. Length is capped per plan tier.
+</ParamField>
+
+### Response
+
+<ResponseField name="id" type="string">
+  Unique workspace UUID.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The workspace name.
+</ResponseField>
+
+<ResponseField name="model_id" type="string">
+  The deployed model ID.
+</ResponseField>
+
+<ResponseField name="gpu_source" type="string">
+  The GPU source (`"serverless"`, `"byog"`, or `"cpu"`).
+</ResponseField>
+
+<ResponseField name="vertical" type="string">
+  The workspace vertical.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Current workspace status. Starts as `"starting"` for serverless/dedicated, `"waiting_for_device"` for BYOG/CPU.
+</ResponseField>
+
+<ResponseField name="api_key" type="string">
+  The plaintext workspace API key (`nrm_sk_...`). **This is shown exactly once — save it immediately.**
+</ResponseField>
+
+<ResponseField name="device_token" type="string">
+  Only present for BYOG/CPU workspaces. Register this token with the Neuramine Agent to connect your hardware.
+</ResponseField>
+
+<ResponseField name="system_prompt" type="string">
+  The active Layer 3 system prompt.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  ISO 8601 creation timestamp.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.neuramine.ai/v1/workspaces \
+  -H "Authorization: Bearer YOUR_SESSION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Customer Support Bot",
+    "model_id": "llama-3.1-8b",
+    "gpu_source": "serverless",
+    "vertical": "general",
+    "system_prompt": "You are Aria, a friendly customer support agent for Acme Corp. Be concise and helpful."
+  }'
+```
+
+```python Python
+import requests
+
+resp = requests.post(
+    "https://api.neuramine.ai/v1/workspaces",
+    headers={"Authorization": "Bearer YOUR_SESSION_TOKEN"},
+    json={
+        "name": "Customer Support Bot",
+        "model_id": "llama-3.1-8b",
+        "gpu_source": "serverless",
+        "vertical": "general",
+        "system_prompt": "You are Aria, a friendly customer support agent for Acme Corp.",
+    },
+)
+ws = resp.json()
+print("Workspace ID:", ws["id"])
+print("API Key:", ws["api_key"])  # save this!
+```
+
+</CodeGroup>
+
+```json Example response
+{
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "name": "Customer Support Bot",
+  "model_id": "llama-3.1-8b",
+  "gpu_source": "serverless",
+  "vertical": "general",
+  "status": "starting",
+  "system_prompt": "You are Aria, a friendly customer support agent for Acme Corp.",
+  "api_key": "nrm_sk_a1b2c3d4-e5f6-7890-abcd-ef1234567890_Kx8mNpQr...",
+  "note": "Save your API key — it will not be shown again.",
+  "rate_limit_per_minute": 60,
+  "created_at": "2024-11-21T14:30:00.000Z",
+  "is_owner": true
+}
+```
+
+<Warning>
+  The `api_key` field is only returned in the create response. Store it securely — you cannot retrieve it again. If you lose it, use [rotate-key](#rotate-api-key) to generate a new one.
+</Warning>
+
+---
+
+## List workspaces
+
+Returns all workspaces you own plus workspaces where you are an active member.
+
+### Endpoint
+
+```
+GET https://api.neuramine.ai/v1/workspaces
+```
+
+### Response
+
+<ResponseField name="object" type="string">
+  Always `"list"`.
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Array of workspace objects (same shape as the create response, without the `api_key` field). Includes an `is_owner` boolean to distinguish owned vs. member workspaces.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.neuramine.ai/v1/workspaces \
+  -H "Authorization: Bearer YOUR_SESSION_TOKEN"
+```
+
+```python Python
+import requests
+
+resp = requests.get(
+    "https://api.neuramine.ai/v1/workspaces",
+    headers={"Authorization": "Bearer YOUR_SESSION_TOKEN"},
+)
+for ws in resp.json()["data"]:
+    print(ws["name"], "—", ws["status"], "—", ws["model_id"])
+```
+
+</CodeGroup>
+
+---
+
+## Get a workspace
+
+Fetches a single workspace by ID.
+
+### Endpoint
+
+```
+GET https://api.neuramine.ai/v1/workspaces/{workspace_id}
+```
+
+### Path parameters
+
+<ParamField path="workspace_id" type="string" required>
+  The workspace UUID.
+</ParamField>
+
+### Example
+
+```bash cURL
+curl https://api.neuramine.ai/v1/workspaces/a1b2c3d4-e5f6-7890-abcd-ef1234567890 \
+  -H "Authorization: Bearer YOUR_SESSION_TOKEN"
+```
+
+---
+
+## Update a workspace
+
+Update the workspace name, system prompt, or rate limit. Only the workspace owner can update settings.
+
+### Endpoint
+
+```
+PATCH https://api.neuramine.ai/v1/workspaces/{workspace_id}
+```
+
+### Request
+
+All fields are optional. Only the fields you include are updated.
+
+<ParamField body="name" type="string">
+  New display name for the workspace.
+</ParamField>
+
+<ParamField body="system_prompt" type="string">
+  Updated Layer 3 system prompt. Length is capped per plan tier.
+</ParamField>
+
+<ParamField body="rate_limit_per_minute" type="integer">
+  New rate limit in requests per minute for this workspace.
+</ParamField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X PATCH \
+  https://api.neuramine.ai/v1/workspaces/a1b2c3d4-e5f6-7890-abcd-ef1234567890 \
+  -H "Authorization: Bearer YOUR_SESSION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "system_prompt": "You are Aria. Be concise, professional, and always offer a follow-up question.",
+    "rate_limit_per_minute": 120
+  }'
+```
+
+```python Python
+import requests
+
+resp = requests.patch(
+    "https://api.neuramine.ai/v1/workspaces/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    headers={"Authorization": "Bearer YOUR_SESSION_TOKEN"},
+    json={
+        "system_prompt": "You are Aria. Be concise and professional.",
+        "rate_limit_per_minute": 120,
+    },
+)
+print(resp.json()["system_prompt"])
+```
+
+</CodeGroup>
+
+---
+
+## Delete a workspace
+
+Permanently deletes the workspace and purges all associated data — documents, vectors, conversation history, and the GPU endpoint. Audit logs are retained for compliance.
+
+### Endpoint
+
+```
+DELETE https://api.neuramine.ai/v1/workspaces/{workspace_id}
+```
+
+### Response
+
+<ResponseField name="deleted" type="boolean">
+  Always `true` on success.
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The deleted workspace ID.
+</ResponseField>
+
+### Example
+
+```bash cURL
+curl -X DELETE \
+  https://api.neuramine.ai/v1/workspaces/a1b2c3d4-e5f6-7890-abcd-ef1234567890 \
+  -H "Authorization: Bearer YOUR_SESSION_TOKEN"
+```
+
+```json Response
+{
+  "deleted": true,
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+}
+```
+
+---
+
+## Rotate API key
+
+Generates a new API key for the workspace. The previous key is invalidated immediately.
+
+### Endpoint
+
+```
+POST https://api.neuramine.ai/v1/workspaces/{workspace_id}/rotate-key
+```
+
+### Response
+
+<ResponseField name="api_key" type="string">
+  The new plaintext API key (`nrm_sk_...`). **Save it immediately — it will not be shown again.**
+</ResponseField>
+
+<ResponseField name="note" type="string">
+  Confirmation message reminding you that the previous key is now invalid.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST \
+  https://api.neuramine.ai/v1/workspaces/a1b2c3d4-e5f6-7890-abcd-ef1234567890/rotate-key \
+  -H "Authorization: Bearer YOUR_SESSION_TOKEN"
+```
+
+```python Python
+import requests
+
+resp = requests.post(
+    "https://api.neuramine.ai/v1/workspaces/a1b2c3d4-e5f6-7890-abcd-ef1234567890/rotate-key",
+    headers={"Authorization": "Bearer YOUR_SESSION_TOKEN"},
+)
+new_key = resp.json()["api_key"]
+print("New key:", new_key)  # update all your integrations now
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "api_key": "nrm_sk_a1b2c3d4-e5f6-7890-abcd-ef1234567890_NewR4nd0mK3y...",
+  "note": "Previous key is now invalid. Save this key — it will not be shown again."
+}
+```
+
+<Warning>
+  Rotating your key immediately breaks any running integrations using the old key. Update all consumers before rotating in production.
+</Warning>
+
+---
+
+## Get usage stats
+
+Returns aggregated inference usage for the current calendar-month billing period. Authenticates with a **workspace API key** (not a session token).
+
+### Endpoint
+
+```
+GET https://api.neuramine.ai/v1/usage
+```
+
+### Response
+
+<ResponseField name="workspace_id" type="string">
+  The workspace UUID this usage report belongs to.
+</ResponseField>
+
+<ResponseField name="period_start" type="string">
+  ISO 8601 timestamp for the start of the current billing period (first day of the current month, 00:00:00 UTC).
+</ResponseField>
+
+<ResponseField name="request_count" type="integer">
+  Total number of inference requests made this billing period.
+</ResponseField>
+
+<ResponseField name="total_tokens" type="integer">
+  Total tokens generated across all requests this billing period.
+</ResponseField>
+
+<ResponseField name="total_cost_usd" type="float">
+  Accumulated GPU cost in USD for this billing period. Includes both flat API fees and GPU time fees where applicable.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.neuramine.ai/v1/usage \
+  -H "Authorization: Bearer nrm_sk_YOUR_KEY"
+```
+
+```python Python
+import requests
+
+resp = requests.get(
+    "https://api.neuramine.ai/v1/usage",
+    headers={"Authorization": "Bearer nrm_sk_YOUR_KEY"},
+)
+usage = resp.json()
+print(f"Requests: {usage['request_count']}")
+print(f"Tokens:   {usage['total_tokens']}")
+print(f"Cost:     ${usage['total_cost_usd']:.4f}")
+```
+
+</CodeGroup>
+
+```json Example response
+{
+  "workspace_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "period_start": "2024-11-01T00:00:00+00:00",
+  "request_count": 1842,
+  "total_tokens": 4193720,
+  "total_cost_usd": 9.2341
+}
+```
+
+---
+
+## Workspace status values
+
+| Status | Meaning |
+|---|---|
+| `starting` | GPU endpoint is provisioning or booting the model |
+| `online` | Model is loaded and ready to serve requests |
+| `offline` | Endpoint has been scaled to zero (serverless) or stopped |
+| `waiting_for_device` | BYOG/CPU workspace waiting for the Neuramine Agent to connect |
+| `suspended` | Workspace suspended due to billing issue — requests return `403` |
+
+## Plan limits
+
+| Plan | Max workspaces | GPU workspaces |
+|---|---|---|
+| Free Forever | 1 | 0 (CPU only) |
+| Starter | 3 | Included |
+| Max | 10 | Included |
+| Enterprise | Unlimited | Included |

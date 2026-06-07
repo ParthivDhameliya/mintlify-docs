@@ -1,0 +1,69 @@
+---
+title: "Neuramine Chat: Messages, Shortcuts, and History Sync"
+sidebarTitle: "Chat"
+description: "Send messages, render Markdown, copy syntax-highlighted code, stop responses mid-stream, and browse your full conversation history."
+---
+
+The chat interface is the primary way you interact with your AI workspace. Open any online workspace, type a message in the input bar, and the AI streams a response back in real time — everything stays on your infrastructure, with zero data leaving to third-party AI vendors.
+
+## Starting a Conversation
+
+Click any workspace in the left sidebar to open it. If the workspace status is **online**, the input bar is active and ready. Type your first message and press **Enter** to send. Each workspace maintains its own separate thread of conversations, so topics never bleed across projects.
+
+<Note>
+  On the **Free** plan, conversation history is stored locally on your device only. **Starter** and higher plans sync history across devices via end-to-end encrypted cloud storage.
+</Note>
+
+## Markdown Formatting
+
+The AI renders full Markdown in every response. Headings, **bold**, _italic_, blockquotes, ordered and unordered lists, and tables all display correctly without any extra configuration. Ask the AI to structure its answer in a table or use bullet points and it will do so in a readable, formatted layout.
+
+## Syntax-Highlighted Code Blocks
+
+When the AI writes code, every block is automatically syntax-highlighted for the language detected. A **Copy** button appears in the top-right corner of each block — click it once to copy the entire snippet to your clipboard. The AI can write, explain, debug, and review code across all major languages.
+
+<Tip>
+  Ask follow-up questions like "now refactor that into a class" or "add error handling" — the AI remembers the code from earlier in the same conversation.
+</Tip>
+
+## Stopping Generation
+
+While the AI is responding, a **Stop** button appears in the toolbar. Click it at any point to cancel the current response mid-stream. The partial response stays visible so you can read what was generated before you stopped.
+
+## Context Window Behavior
+
+Every model has a maximum context window — the total amount of text it can hold in memory at once. When a conversation grows long enough to exceed that limit, Neuramine silently drops the oldest messages to keep the most recent context intact. You will never see an error; the conversation simply continues with the most relevant recent exchanges.
+
+In addition to the model's own context limit, your plan enforces a maximum input token count per request. This controls how much of the conversation history can be sent to the model at once.
+
+| Plan | Max input tokens |
+|---|---|
+| Free | 2,048 |
+| Starter | 32,768 |
+| Max | 128,000 |
+
+<Info>
+  You can view a model's context window size on its detail page in the **Model Registry**. To check the limit for your current plan, see [Plans](/billing/plans).
+</Info>
+
+For long research sessions, consider starting a fresh conversation when you shift to a new topic. This keeps context focused and responses sharper.
+
+## Conversation History
+
+Every conversation is saved automatically. All past conversations appear in the **left sidebar**, listed by workspace. Click any entry to reopen it and continue where you left off. Use the search bar at the top of the sidebar to find a specific conversation by keyword.
+
+To delete a conversation, hover over it in the sidebar and click the trash icon.
+
+## Keyboard Shortcuts
+
+Use these shortcuts to navigate and compose messages without leaving the keyboard.
+
+| Shortcut | Action |
+|---|---|
+| `Enter` | Send the current message |
+| `Shift + Enter` | Insert a new line without sending |
+| `↑` (Up Arrow) | Edit your last sent message |
+
+<Tip>
+  Start a new conversation for each distinct topic to keep the context window focused and get sharper, more accurate responses.
+</Tip>

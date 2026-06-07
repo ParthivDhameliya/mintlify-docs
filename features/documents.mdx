@@ -1,0 +1,106 @@
+---
+title: "Document Knowledge Base and File Uploads in Neuramine"
+sidebarTitle: "Documents"
+description: "Upload PDFs, images, audio, and more to a persistent knowledge base and get cited, source-grounded answers from the AI across all conversations."
+---
+
+Neuramine gives you two ways to bring documents into the AI's context: a **persistent knowledge base** that stays active across all conversations in a workspace, and **inline file attachments** for one-off questions in a single message. This page covers both, explains how retrieval and citations work, and shows you the API for automating uploads.
+
+## Knowledge Base vs. Inline Attachments
+
+The **knowledge base** is a vector-indexed store tied to a specific workspace. Every document you add is chunked, embedded, and stored in an isolated collection scoped to that workspace. The AI automatically searches it on every message and injects the most relevant passages into its context. Documents in the knowledge base persist until you explicitly delete them — they are available in every conversation you open in that workspace.
+
+**Inline attachments** are files you attach directly to a single chat message using the paperclip icon. The AI reads the file for that message only; nothing is stored or indexed. Use inline attachments for quick one-off questions. Use the knowledge base when you need the AI to reference the same documents repeatedly.
+
+## Supported File Types
+
+<CardGroup cols={2}>
+  <Card title="Documents" icon="file-lines" href="/features/documents#how-to-upload-to-the-knowledge-base">
+    `.pdf`, `.docx`, `.txt`, `.md`
+  </Card>
+  <Card title="Spreadsheets" icon="table" href="/features/documents#how-to-upload-to-the-knowledge-base">
+    `.csv`
+  </Card>
+  <Card title="Images" icon="image" href="/features/documents#how-to-upload-to-the-knowledge-base">
+    `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp` — requires a vision-capable model in the workspace
+  </Card>
+  <Card title="Audio & Video" icon="file-audio" href="/features/documents#how-to-upload-to-the-knowledge-base">
+    `.mp3`, `.mp4`, `.wav` — transcribed and indexed automatically
+  </Card>
+</CardGroup>
+
+<Note>
+  Scanned PDFs are processed with OCR. Accuracy depends on scan quality — digitally created PDFs with embedded text produce the best results.
+</Note>
+
+## How to Upload to the Knowledge Base
+
+<Steps>
+  <Step title="Open the Knowledge Base panel">
+    In your workspace, click the **Documents** tab in the left sidebar or navigate to **Settings → Knowledge Base**.
+  </Step>
+  <Step title="Upload your files">
+    Click the **Upload** button and select one or more files, or **drag and drop** files directly into the panel.
+  </Step>
+  <Step title="Wait for indexing">
+    Each file is extracted, split into 512-character chunks with a 50-character overlap, and embedded into your workspace's vector store. Status changes from **processing** to **ready** when complete.
+  </Step>
+  <Step title="Start asking questions">
+    Open any chat in the workspace. The AI automatically retrieves the most relevant chunks (cosine similarity threshold 0.65) and uses them to answer your question.
+  </Step>
+</Steps>
+
+## Document Limits by Plan
+
+| Plan | Max file size | Max files in knowledge base |
+|---|---|---|
+| Free | 10 MB | 3 files |
+| Starter | 25 MB | 10 files |
+| Max | 100 MB | 20 files |
+
+To increase your limits, upgrade your plan from **Settings → Billing**.
+
+## Citations
+
+When the AI uses your knowledge base to answer a question, it shows an inline citation for every source passage it retrieved:
+
+```
+[Source: Employee Handbook.pdf, p.4]
+```
+
+Click the citation to view the exact chunk of text the AI used. Citations include the filename and page number so you can verify the original source.
+
+## API Usage
+
+You can upload, list, and delete documents programmatically using your workspace API key.
+
+<CodeGroup>
+```bash Upload a document
+curl https://api.neuramine.ai/v1/documents \
+  -H 'Authorization: Bearer nrm_sk_...' \
+  -F 'file=@report.pdf'
+```
+
+```bash List all documents
+curl https://api.neuramine.ai/v1/documents \
+  -H 'Authorization: Bearer nrm_sk_...'
+```
+
+```bash Delete a document
+curl -X DELETE https://api.neuramine.ai/v1/documents/{document_id} \
+  -H 'Authorization: Bearer nrm_sk_...'
+```
+</CodeGroup>
+
+The upload endpoint returns a document object with an `id`, `status`, and `chunk_count` you can use to confirm successful indexing.
+
+## Tips for Best Results
+
+<Tip>
+  Ask specific questions rather than open-ended ones like "summarize everything." Targeted questions produce more precise retrieval and better answers.
+</Tip>
+
+- **Combine multiple documents**: Ask the AI to compare two contracts, reconcile differences between policy versions, or pull data from several reports in a single question.
+- **Spreadsheets**: Describe the analysis you want — "find the top 5 revenue months" — rather than asking the AI to explore the data freely.
+- **Long PDFs**: Break large documents into logical sections and upload them separately to improve chunk relevance.
+- **Code repositories**: Upload individual files rather than archives; the AI retrieves at the file and function level.

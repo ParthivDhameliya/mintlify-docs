@@ -1,0 +1,324 @@
+---
+title: "Documents — Upload and Manage Your RAG Knowledge Base"
+sidebarTitle: "Documents"
+description: "Upload files to your workspace knowledge base. Neuramine chunks, embeds, and indexes them so chat completions automatically retrieve relevant context."
+---
+
+Every Neuramine workspace has a private knowledge base backed by a vector search index. When you upload a document, the platform extracts its text, splits it into overlapping chunks (512 characters, 50-character overlap), generates vector embeddings, and indexes them for similarity search. On every `POST /v1/chat/completions` request, the top-k most relevant chunks are automatically retrieved and injected into the system prompt — giving your model accurate, grounded answers from your own documents without any retrieval code on your end.
+
+<Note>
+  RAG injection is fully automatic. You do not pass retrieved chunks to the chat completions endpoint yourself — Neuramine handles retrieval and injection transparently on every request.
+</Note>
+
+## Authentication
+
+All document endpoints require your workspace API key as a Bearer token.
+
+```
+Authorization: Bearer nrm_sk_<workspace_id>_<32_chars>
+```
+
+## Supported file types
+
+| Category | Extensions |
+|---|---|
+| Text & documents | `pdf`, `txt`, `md`, `docx`, `csv` |
+| Images | `png`, `jpg`, `jpeg`, `gif`, `webp` |
+| Audio & video | `mp3`, `mp4`, `wav` |
+
+<Info>
+  Image files are processed with OCR to extract printed text. Audio and video files are transcribed using Whisper before indexing.
+</Info>
+
+---
+
+## Upload a document
+
+Upload a single file to your workspace knowledge base. The file is ingested synchronously — the response confirms successful indexing.
+
+### Endpoint
+
+```
+POST https://api.neuramine.ai/v1/documents
+```
+
+Send the request as `multipart/form-data`.
+
+### Request
+
+<ParamField body="file" type="file" required>
+  The document to upload and index. Must be one of the supported file types listed above. File size limits and maximum document counts are enforced per plan tier.
+</ParamField>
+
+### Response
+
+<ResponseField name="id" type="string">
+  The unique document ID. Use this to delete the document later.
+</ResponseField>
+
+<ResponseField name="filename" type="string">
+  The original filename as uploaded.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Indexing status. Returns `"indexed"` on success.
+</ResponseField>
+
+<ResponseField name="chunk_count" type="integer">
+  Number of text chunks generated and stored in the knowledge base.
+</ResponseField>
+
+<ResponseField name="size_bytes" type="integer">
+  File size in bytes.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  ISO 8601 timestamp of when the document was ingested.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.neuramine.ai/v1/documents \
+  -H "Authorization: Bearer nrm_sk_YOUR_KEY" \
+  -F "file=@company-handbook.pdf"
+```
+
+```python Python
+import requests
+
+with open("company-handbook.pdf", "rb") as f:
+    resp = requests.post(
+        "https://api.neuramine.ai/v1/documents",
+        headers={"Authorization": "Bearer nrm_sk_YOUR_KEY"},
+        files={"file": ("company-handbook.pdf", f, "application/pdf")},
+    )
+
+doc = resp.json()
+print(f"Indexed: {doc['filename']} → {doc['chunk_count']} chunks")
+```
+
+```typescript Node.js
+import fs from "fs";
+
+const form = new FormData();
+form.append(
+  "file",
+  new Blob([fs.readFileSync("company-handbook.pdf")], {
+    type: "application/pdf",
+  }),
+  "company-handbook.pdf"
+);
+
+const resp = await fetch("https://api.neuramine.ai/v1/documents", {
+  method: "POST",
+  headers: { Authorization: "Bearer nrm_sk_YOUR_KEY" },
+  body: form,
+});
+
+const doc = await resp.json();
+console.log(`Indexed: ${doc.filename} → ${doc.chunk_count} chunks`);
+```
+
+</CodeGroup>
+
+```json Example response
+{
+  "id": "doc_3f7a9b2c-14e8-4d01-b5cf-8e2a1f6c9d03",
+  "filename": "company-handbook.pdf",
+  "status": "indexed",
+  "chunk_count": 47,
+  "size_bytes": 284672,
+  "created_at": "2024-11-18T10:22:05.000Z"
+}
+```
+
+---
+
+## List documents
+
+Returns all documents currently indexed in your workspace knowledge base.
+
+### Endpoint
+
+```
+GET https://api.neuramine.ai/v1/documents
+```
+
+### Response
+
+<ResponseField name="object" type="string">
+  Always `"list"`.
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Array of document objects with the same shape as the upload response.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.neuramine.ai/v1/documents \
+  -H "Authorization: Bearer nrm_sk_YOUR_KEY"
+```
+
+```python Python
+import requests
+
+resp = requests.get(
+    "https://api.neuramine.ai/v1/documents",
+    headers={"Authorization": "Bearer nrm_sk_YOUR_KEY"},
+)
+for doc in resp.json()["data"]:
+    print(doc["filename"], "—", doc["chunk_count"], "chunks")
+```
+
+```typescript Node.js
+const resp = await fetch("https://api.neuramine.ai/v1/documents", {
+  headers: { Authorization: "Bearer nrm_sk_YOUR_KEY" },
+});
+const { data } = await resp.json();
+data.forEach((doc) =>
+  console.log(doc.filename, "—", doc.chunk_count, "chunks")
+);
+```
+
+</CodeGroup>
+
+```json Example response
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "doc_3f7a9b2c-14e8-4d01-b5cf-8e2a1f6c9d03",
+      "filename": "company-handbook.pdf",
+      "status": "indexed",
+      "chunk_count": 47,
+      "size_bytes": 284672,
+      "created_at": "2024-11-18T10:22:05.000Z",
+      "error_message": null
+    },
+    {
+      "id": "doc_9c1e5d4a-73b2-48f7-ae10-2c3b0f9e7d62",
+      "filename": "product-faq.md",
+      "status": "indexed",
+      "chunk_count": 12,
+      "size_bytes": 18432,
+      "created_at": "2024-11-20T08:45:31.000Z",
+      "error_message": null
+    }
+  ]
+}
+```
+
+---
+
+## Delete a document
+
+Permanently removes a document and all its chunks from the knowledge base. The model will no longer retrieve content from this document in future chat requests.
+
+### Endpoint
+
+```
+DELETE https://api.neuramine.ai/v1/documents/{document_id}
+```
+
+### Path parameters
+
+<ParamField path="document_id" type="string" required>
+  The `id` of the document to delete, as returned by the upload or list endpoints.
+</ParamField>
+
+### Response
+
+<ResponseField name="deleted" type="boolean">
+  Always `true` on success.
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  The ID of the deleted document, echoed back for confirmation.
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X DELETE \
+  "https://api.neuramine.ai/v1/documents/doc_3f7a9b2c-14e8-4d01-b5cf-8e2a1f6c9d03" \
+  -H "Authorization: Bearer nrm_sk_YOUR_KEY"
+```
+
+```python Python
+import requests
+
+doc_id = "doc_3f7a9b2c-14e8-4d01-b5cf-8e2a1f6c9d03"
+
+resp = requests.delete(
+    f"https://api.neuramine.ai/v1/documents/{doc_id}",
+    headers={"Authorization": "Bearer nrm_sk_YOUR_KEY"},
+)
+print(resp.json())  # {"deleted": true, "id": "doc_3f7a9b2c-..."}
+```
+
+```typescript Node.js
+const docId = "doc_3f7a9b2c-14e8-4d01-b5cf-8e2a1f6c9d03";
+
+const resp = await fetch(
+  `https://api.neuramine.ai/v1/documents/${docId}`,
+  {
+    method: "DELETE",
+    headers: { Authorization: "Bearer nrm_sk_YOUR_KEY" },
+  }
+);
+console.log(await resp.json());
+// { deleted: true, id: "doc_3f7a9b2c-..." }
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "deleted": true,
+  "id": "doc_3f7a9b2c-14e8-4d01-b5cf-8e2a1f6c9d03"
+}
+```
+
+---
+
+## How the RAG pipeline works
+
+<Steps>
+  <Step title="Text extraction">
+    Neuramine extracts plain text from the uploaded file. PDFs are parsed with multi-pass extraction and OCR fallback. Images use OCR. Audio and video are transcribed with Whisper.
+  </Step>
+  <Step title="Chunking">
+    The extracted text is split into overlapping chunks with a chunk size of 512 characters and a 50-character overlap. Overlap ensures that context spanning chunk boundaries is preserved.
+  </Step>
+  <Step title="Embedding and indexing">
+    Each chunk is embedded into a dense vector and stored in your workspace's private knowledge base collection. Each workspace has fully isolated vector storage — no data is shared between workspaces.
+  </Step>
+  <Step title="Retrieval at inference time">
+    When you call `POST /v1/chat/completions`, the user's message is embedded and the top-k most semantically similar chunks are retrieved. They are automatically appended to the assembled system prompt before the request is forwarded to the model.
+
+    | Plan | Max RAG chunks per request |
+    |---|---|
+    | Free Forever | 3 |
+    | Starter | 5 |
+    | Max | 10 |
+  </Step>
+</Steps>
+
+## Error reference
+
+| HTTP status | Meaning |
+|---|---|
+| `401` | Missing or invalid API key |
+| `403` | Document limit for your plan reached |
+| `413` | File exceeds the size limit for your plan |
+| `415` | File type not supported or not allowed on your plan |
+| `429` | Daily upload limit reached |

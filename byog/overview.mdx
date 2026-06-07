@@ -1,0 +1,66 @@
+---
+title: "Neuramine BYOG: Run AI Models on Your Own Hardware"
+sidebarTitle: "Overview"
+description: "BYOG (Bring Your Own GPU) lets your machine handle all AI inference while Neuramine Cloud handles routing — your data never leaves your hardware."
+---
+
+BYOG — Bring Your Own GPU — is the Neuramine feature that turns your own machine into the inference backend for your workspace. Every model call, every token generated, every speech transcription runs entirely on your CPU or GPU. Neuramine's cloud acts as a lightweight router that connects your browser to your hardware; it never processes your prompts or stores your outputs.
+
+## How the routing works
+
+When you send a message in the Neuramine chat UI, the request travels through a short chain before your machine ever sees it:
+
+```
+Your Browser  ──→  Neuramine Cloud  ──→  Cloudflare Tunnel  ──→  Your Machine
+(chat UI)          (routing only)         (encrypted)              (AI inference)
+```
+
+Your machine opens a persistent, encrypted outbound tunnel to `wss://agent.neuramine.io`. Neuramine's cloud forwards requests through that tunnel — it never initiates a connection *to* your machine. This means you do not need to open any firewall ports or configure port forwarding.
+
+## What the agent does
+
+The Neuramine agent is a single executable you run on the machine you want to use for inference. Once started it:
+
+- Authenticates with Neuramine Cloud using your device token
+- Downloads the workspace-configured model to `~/.neuramine/models/` on first run (cached for subsequent starts)
+- Selects the best available inference backend — vLLM for NVIDIA GPUs, llama.cpp with Metal for Apple Silicon, llama.cpp for CPU
+- Runs a local inference server on port `8080` (accessible only from your machine)
+- Sends a heartbeat to the cloud every 30 seconds and reconnects automatically within 60 seconds if your connection drops
+
+The agent connects **outbound only** to `*.neuramine.io`. No inbound ports, no firewall changes, and no Docker or runtime dependencies are required.
+
+## Minimum requirements
+
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| OS | Windows 10, macOS 12, Ubuntu 20.04 | Latest stable release |
+| CPU | 4 cores | 8+ cores |
+| RAM | 16 GB | 32 GB+ |
+| Disk | 50 GB free | SSD with 100 GB+ free |
+| Network | Outbound HTTPS (port 443) | Stable broadband |
+| GPU | Not required | NVIDIA (CUDA 11.8+) or Apple Silicon |
+
+<Warning>
+  AMD GPUs are not supported. The agent uses NVIDIA CUDA or Apple Metal for GPU-accelerated inference only.
+</Warning>
+
+<Tip>
+  The agent is a single executable — no Docker, no Python environment, no package manager. Download, mark as executable, and run.
+</Tip>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Download the Agent" icon="download" href="/byog/download-agent">
+    Get the agent binary for Windows, macOS, or Linux.
+  </Card>
+  <Card title="Connect Your Device" icon="plug" href="/byog/connect-device">
+    Generate a device token and bring your machine online.
+  </Card>
+  <Card title="Device Tokens" icon="key" href="/byog/device-tokens">
+    Understand how token authentication works and how to revoke access.
+  </Card>
+  <Card title="Supported Hardware" icon="microchip" href="/byog/supported-hardware">
+    Find the right model for your GPU, Apple Silicon, or CPU setup.
+  </Card>
+</CardGroup>

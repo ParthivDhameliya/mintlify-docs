@@ -1,0 +1,40 @@
+---
+title: "Neuramine: Run Private AI Models on Your Own Hardware"
+description: "Run LLMs, speech-to-text, and TTS on your own GPU with a ChatGPT-style interface and an OpenAI-compatible API. Your data never leaves your machine."
+---
+
+Neuramine is a private AI platform that gives you a full ChatGPT-style experience — chat interface, voice, and a drop-in OpenAI-compatible API — powered entirely by your own hardware. Your prompts, responses, and audio never leave your machine; the Neuramine cloud only routes the connection.
+
+<CardGroup cols={2}>
+  <Card title="Introduction" icon="brain" href="/introduction">
+    Learn what Neuramine is, how the BYOG architecture works, and what makes it private by design.
+  </Card>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Go from sign-up to your first AI response in under five minutes.
+  </Card>
+  <Card title="Bring Your Own GPU" icon="microchip" href="/byog/overview">
+    Connect your own machine as the inference backend. One executable, no Docker required.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/overview">
+    Explore the OpenAI-compatible REST API. Change two lines of code to migrate from OpenAI.
+  </Card>
+</CardGroup>
+
+## How to get started
+
+Follow these four steps to go from a new account to a running AI workspace.
+
+<Steps>
+  <Step title="Sign Up">
+    Create a free account at [cloud.neuramine.ai](https://cloud.neuramine.ai) using Google OAuth or a magic link sent to your email. No credit card required.
+  </Step>
+  <Step title="Create a Workspace">
+    Click **New Workspace** in the dashboard, give it a name, and choose a model from the registry. Each workspace gets its own API key and conversation history.
+  </Step>
+  <Step title="Download the Agent">
+    Download the Neuramine agent for your platform and start it with your device token. The agent connects outbound only — no firewall changes needed.
+  </Step>
+  <Step title="Start Chatting">
+    Once your device shows **online** in the dashboard, open the chat interface or call the API. All inference runs on your hardware.
+  </Step>
+</Steps>

@@ -1,0 +1,227 @@
+---
+title: "Audio — Transcription and Speech Synthesis Endpoints"
+sidebarTitle: "Audio"
+description: "Transcribe audio files with Whisper-compatible speech-to-text, or generate natural speech from text with the OpenAI-compatible TTS endpoint."
+---
+
+Neuramine exposes two audio endpoints that mirror the OpenAI Audio API surface. The transcription endpoint accepts uploaded audio files and returns a text transcript. The speech endpoint synthesizes audio from a text string and streams back an MP3 (or WAV) binary. Both endpoints run on your workspace's configured inference backend — the same GPU that powers your chat completions.
+
+<Info>
+  **BYOG and CPU workspaces.** Audio endpoints for BYOG and CPU workspaces route from the frontend directly to your local agent over a tunnel. Calling these backend endpoints from your own code for BYOG/CPU workspaces will return `503`. Use the Neuramine chat UI's audio controls instead, or call the agent's local tunnel address directly.
+</Info>
+
+## Authentication
+
+All audio endpoints require a workspace API key as a Bearer token.
+
+```
+Authorization: Bearer nrm_sk_<workspace_id>_<32_chars>
+```
+
+---
+
+## Speech-to-Text (Transcriptions)
+
+Convert an audio file to text using Neuramine's Whisper-compatible transcription engine. The request format is identical to OpenAI's Whisper endpoint, so existing Whisper integrations work without code changes.
+
+### Endpoint
+
+```
+POST https://api.neuramine.ai/v1/audio/transcriptions
+```
+
+### Request
+
+Send the request as `multipart/form-data`.
+
+<ParamField body="file" type="file" required>
+  The audio file to transcribe. Accepted formats: `mp3`, `mp4`, `wav`, `m4a`, `webm`, `ogg`. Maximum file size is enforced per plan tier.
+</ParamField>
+
+<ParamField body="model" type="string" default="whisper-large-v3">
+  The STT model to use. Available models:
+
+  | ID | Name | Min RAM |
+  |---|---|---|
+  | `whisper-large-v3` | Whisper Large v3 | 10 GB |
+  | `whisper-small` | Whisper Small | 4 GB |
+  | `distil-whisper` | Distil-Whisper | 8 GB |
+</ParamField>
+
+<ParamField body="language" type="string">
+  Optional BCP-47 language code (e.g. `"en"`, `"fr"`, `"de"`). When omitted, Whisper detects the language automatically.
+</ParamField>
+
+### Response
+
+<ResponseField name="text" type="string">
+  The full transcription of the audio file.
+</ResponseField>
+
+```json
+{
+  "text": "The quick brown fox jumped over the lazy dog."
+}
+```
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.neuramine.ai/v1/audio/transcriptions \
+  -H "Authorization: Bearer nrm_sk_YOUR_KEY" \
+  -F "file=@recording.mp3" \
+  -F "model=whisper-large-v3"
+```
+
+```python Python (OpenAI SDK)
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.neuramine.ai/v1/",
+    api_key="nrm_sk_YOUR_KEY",
+)
+
+with open("recording.mp3", "rb") as f:
+    transcript = client.audio.transcriptions.create(
+        model="whisper-large-v3",
+        file=f,
+    )
+
+print(transcript.text)
+```
+
+```typescript Node.js (OpenAI SDK)
+import OpenAI from "openai";
+import fs from "fs";
+
+const client = new OpenAI({
+  baseURL: "https://api.neuramine.ai/v1/",
+  apiKey: "nrm_sk_YOUR_KEY",
+});
+
+const transcript = await client.audio.transcriptions.create({
+  model: "whisper-large-v3",
+  file: fs.createReadStream("recording.mp3"),
+});
+
+console.log(transcript.text);
+```
+
+</CodeGroup>
+
+---
+
+## Text-to-Speech (Speech Synthesis)
+
+Convert a text string into spoken audio. The response is a binary audio stream you can play or save directly.
+
+### Endpoint
+
+```
+POST https://api.neuramine.ai/v1/audio/speech
+```
+
+### Request
+
+Send the request as JSON.
+
+<ParamField body="model" type="string" required>
+  The TTS model to use. Available models:
+
+  | ID | Name | Min RAM |
+  |---|---|---|
+  | `kokoro-82m` | Kokoro 82M | 2 GB |
+  | `xtts-v2` | XTTS v2 | 8 GB |
+</ParamField>
+
+<ParamField body="input" type="string" required>
+  The text to synthesize. Maximum character length is enforced per plan tier.
+</ParamField>
+
+<ParamField body="voice" type="string">
+  The voice to use for synthesis. Available voices depend on the TTS model configured for your workspace. Omit to use the model's default voice.
+</ParamField>
+
+### Response
+
+The response body is a raw audio binary. The `Content-Type` header will be `audio/mpeg` for MP3 output or `audio/wav` for WAV output (determined automatically from the audio data).
+
+### Example
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.neuramine.ai/v1/audio/speech \
+  -H "Authorization: Bearer nrm_sk_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "kokoro-82m",
+    "input": "Welcome to Neuramine. Your private AI is ready.",
+    "voice": "af_heart"
+  }' \
+  --output speech.mp3
+```
+
+```python Python (OpenAI SDK)
+from openai import OpenAI
+from pathlib import Path
+
+client = OpenAI(
+    base_url="https://api.neuramine.ai/v1/",
+    api_key="nrm_sk_YOUR_KEY",
+)
+
+response = client.audio.speech.create(
+    model="kokoro-82m",
+    voice="af_heart",
+    input="Welcome to Neuramine. Your private AI is ready.",
+)
+
+Path("speech.mp3").write_bytes(response.content)
+```
+
+```typescript Node.js (OpenAI SDK)
+import OpenAI from "openai";
+import fs from "fs";
+
+const client = new OpenAI({
+  baseURL: "https://api.neuramine.ai/v1/",
+  apiKey: "nrm_sk_YOUR_KEY",
+});
+
+const mp3 = await client.audio.speech.create({
+  model: "kokoro-82m",
+  voice: "af_heart",
+  input: "Welcome to Neuramine. Your private AI is ready.",
+});
+
+const buffer = Buffer.from(await mp3.arrayBuffer());
+fs.writeFileSync("speech.mp3", buffer);
+```
+
+</CodeGroup>
+
+---
+
+## Supported audio formats
+
+<CardGroup cols={2}>
+  <Card title="Input (STT)" icon="microphone">
+    `mp3` · `mp4` · `wav` · `m4a` · `webm` · `ogg`
+  </Card>
+  <Card title="Output (TTS)" icon="volume-high">
+    `mp3` (primary) · `wav` (fallback)
+  </Card>
+</CardGroup>
+
+## Error reference
+
+| HTTP status | Meaning |
+|---|---|
+| `400` | Text input exceeds character limit for your plan |
+| `401` | Missing or invalid API key |
+| `413` | Audio file exceeds the size limit for your plan |
+| `429` | Rate limit exceeded |
+| `503` | BYOG/CPU workspace — endpoint not routed through this backend |
